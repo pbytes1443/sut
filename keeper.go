@@ -60,32 +60,52 @@ func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, codespace sdk.
 		sentStoreKey: key,
 		cdc:          cdc,
 		coinKeeper:   ck,
-		codespace:    codespace,
+		codespace:    codespace,            ////learn WHAT THIS DOES
 	}
 	return keeper
 }
 
 func (keeper Keeper) RegisterVpnService(ctx sdk.Context, msg MsgRegisterVpnService) (string, sdk.Error) {
-	var bal sdk.Coin
+	var bal sdk.Coin                         /// TODO : PLEASE CHANGE BAL to BALANCE WHEREVER IT's applicable
 	bal=0
-	sentKey := msg.address
+	sentKey := msg.address      /*
+	
+	TODO: check the type of sentkey as sdk.ACCaddress
+			   stdTx, ok := tx.(StdTx)
+		if !ok {
+			return ctx, sdk.ErrInternal("tx must be StdTx").Result(), true
+		}
+*/
 	store := ctx.KVStore(keeper.sentStoreKey)
-	var p regvpn
+	var p regvpn                      /// This regvpn is of type registervpn located under types package   use it as types.registervpn
+
+
+	/*
 	p.ip = msg.ip
 	p.coins=bal //initially zero coins
 	p.netspeed = msg.netspeed
 	p.ppgb = msg.ppgb
-	bz, _ := keeper.cdc.MarshalBinary(p)
+
+
+	TODO the above is poor way of writing code instead write it as
+	 p{ip:ip,
+	 }
+
+	*/
+   
+	bz, _ := keeper.cdc.MarshalBinary(p)       //PLEASE USE SMAE VARIABLE NAMES  FOR FUNCTION parameter
 	store.Set(sentKey, bz)
-	fmt.Println("Service provider register with this address", sentKey)
+	fmt.Println("Service provider register with this address", sentKey)           //PLEASE REMOVE THIS OR ELSE PRINT IN A STANDARD FORMAT which includes module and other related info
 	return "", nil
 }
 
+
 func (keeper Keeper) QueryRegisteredVpnService(ctx sdk.Context, msg MsgQueryRegisteredVpnService) (regvpn, sdk.Error) {
 	store := ctx.KVStore(keeper.sentStoreKey)
-	bz := store.Get(msg.address)
-	var prov regvpn
-	if bz != nil {
+	bz := store.Get(msg.address)      /// DONOT PASS DIRECTLY CHECK TYPE
+	var prov regvpn                               // change variable name
+	if bz != nil {                                        /// IT IS bz==nil then return error of type keynotfoundinkvstore
+
 	}
 	keeper.cdc.UnmarshalBinary(bz, &prov)
 	return prov, nil

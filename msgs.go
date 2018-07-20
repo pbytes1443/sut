@@ -14,12 +14,18 @@ import (
 //
 //
 //
+
+
+ /// USE gofmt command for styling/structing the go code
+
+
+
 type MsgRegisterVpnService struct {
 	address  sdk.Address
 	ip       string
-	netspeed string
-	ppgb     string
-	//signature auth.Signature
+	netspeed string                                          //TODO: CHANGE THE NETSPEED TYPE TO INT
+	ppgb     string                                              // TODO:   CHANGE THE PRICE PER GB to INT
+	//signature auth.Signature                    // TODO :  sign all the above params using client signature and verify it by using public key from account mapper
 }
 
 func (msc MsgRegisterVpnService) Type() string {
@@ -27,21 +33,22 @@ func (msc MsgRegisterVpnService) Type() string {
 }
 
 func (msc MsgRegisterVpnService) GetSignBytes() []byte {
-    crypto.
-	return b
+	return b                                                       //TODO : JUST RETURN WHAT COSMOS HAS RETURNED FOR THIS SPECIFIC
+	                                                                       
 }
 
 func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error { 
 	if msc.address == nil {
+		return nil                                    //TODO: SHOULD RETURN SDK.ERROR MSG
+	}
+	if msc.ppgb == "" {                  //VALIDATE           int for lower bound=0 and upper bound
+
+		return nil                                   
+	}
+	if msc.ip == "" {                       /// CHeck If the type is string   and also validate for a proper ip
 		return nil
 	}
-	if msc.ppgb == "" {
-		return nil
-	}
-	if msc.ip == "" {
-		return nil
-	}
-	if msc.netspeed == "" {
+	if msc.netspeed == "" {           ////check for lower bound.... you will get data in bytes/sec
 		return nil
 	}
 	return nil
@@ -50,8 +57,8 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 func (msc MsgRegisterVpnService) GetSigners() []sdk.Address {
 	return []sdk.Address{msc.address}
 }
-func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.Address, ip, ppgb, netspeed string) *MsgRegisterVpnService {
-	return &MsgRegisterVpnService{
+func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.Address, ip, ppgb, netspeed string) MsgRegisterVpnService {
+	return MsgRegisterVpnService{
 		address:  address,
 		ip:       ip,
 		ppgb:     ppgb,
@@ -65,7 +72,8 @@ func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.Address, i
 //
 type MsgRegisterMasterNode struct {
 	address sdk.Address
-	pubkey  crypto.PubKey
+	pubkey  crypto.PubKey                         //TODO REMOVE PUBLIC KEY PARAMETER , AND GET PUBLIC KEY PARAMETER FROM THE BANK KEEPER AS
+	                                                                      // bank.keeper.account_mapper.GETAccount()  ---> ACCOUNT WILL HAVE PUBLIC KEY
 }
 
 //Newmsgcreate : TODO
@@ -75,13 +83,13 @@ func (msc MsgRegisterMasterNode) Type() string {
 }
 
 func (msc MsgRegisterMasterNode) GetSignBytes() []byte {
-	b, _ := json.Marshal(msc)
+	b, _ := json.Marshal(msc)                                      //TODO : PLEASE SET THIS ACCORDINGLY
 	return b
 }
 
 func (msc MsgRegisterMasterNode) ValidateBasic() sdk.Error {
 	if msc.address == nil {
-		return nil
+		return nil                                   // ERROR MESSAGE
 	}
 	if msc.pubkey == nil {
 		return nil
@@ -99,7 +107,7 @@ func (msc MsgRegisterMasterNode) GetSigners() []sdk.Address {
 type MsgQueryRegisteredVpnService struct {
 	address sdk.Address
 }
-
+/// SHould  restrict QUERYABLE -----> MYTAKS_ALLAGOG
 func (msc MsgQueryRegisteredVpnService) Type() string {
 	return "sentinel"
 }
@@ -111,7 +119,7 @@ func (msc MsgQueryRegisteredVpnService) GetSignBytes() []byte {
 
 func (msc MsgQueryRegisteredVpnService) ValidateBasic() sdk.Error {
 	if msc.address == nil {
-		return nil
+		return nil             //error msg and perform similar address validation as above
 	}
 	return nil
 }
@@ -195,6 +203,9 @@ func (msc MsgDeleteMasterNode) GetSignBytes() []byte {
 }
 
 func (msc MsgDeleteMasterNode) ValidateBasic() sdk.Error {
+
+//TODO:CHECK THE SIZE OF MSG.ADDRESS at each and every ValidateBasic() METHOD. 
+
 	if msc.address == nil {
 		return nil
 	}
@@ -241,7 +252,6 @@ func (msc MsgPayVpnService) GetSigners() []sdk.Address {
 //
 //
 //
-
 type MsgSigntoVpn struct {
 	coins sdk.Coin
 	//	pubkey   tmcrypto.PubKey
@@ -292,7 +302,8 @@ func (msc MsgGetVpnPayment) Type() string {
 }
 
 func (msc MsgGetVpnPayment) GetSignBytes() []byte {
-	b, _ := json.Marshal(msc)
+	b, err := msgCdc.MarshalJSON(msc)
+	//b, _ := json.Marshal(msc)
 	return b
 }
 
