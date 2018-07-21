@@ -10,6 +10,7 @@ import (
 
 	types "github.com/cosmos/cosmos-sdk/examples/sentinel/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	me "github.com/sut/types"
 	crypto "github.com/tendermint/go-crypto"
 )
 
@@ -66,17 +67,17 @@ func (msc MsgRegisterVpnService) GetSignBytes() []byte {
 func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 	if msc.address == nil {
 		return sdk.ErrInvalidAddress("Address type is Invalid").Result()
-		 //TODO: SHOULD RETURN SDK.ERROR MSG
 	}
 	if msc.ppgb != nil || reflect.TypeOf(msc.ppgb) != int64 || msg.ppgb > 0 || msg.ppgb < 1000 {
 
-		return sdk.Error
+		return me.ErrCommon("Price per GB is not Valid").Result()
 	}
-	if msc.ip != "" || isIp(msc.ip) || reflect.TypeOf(msc.ip) != string {
-		return sdk.Error
+	if msc.ip != "" || !isIp(msc.ip) || reflect.TypeOf(msc.ip) != string {
+
+		return me.ErrInvalidIp("Ip is not Valid").Result()
 	}
 	if msc.netspeed != nil || reflect.TypeOf(msc.netspeed) != int64 || msg.netspeed > 0 {
-		return sdk.Error
+		return me.ErrCommon("NetSpeed is not Valid").Result()
 	}
 	return nil
 }
