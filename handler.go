@@ -36,7 +36,7 @@ func NewHandler(k Keeper) sdk.Handler {
 func handleMsgRegisterMasterNode(ctx sdk.Context, keeper Keeper, msg MsgRegisterMasterNode) sdk.Result {
 	id, err := keeper.RegisterMasterNode(ctx, msg)
 	if err != nil {
-		return err.Result()
+		return err.Result()          //CHANGE THIS SPECIFIC ERROR TYPE
 	}
 	d, _ := keeper.cdc.MarshalBinary(id)
 	return sdk.Result{
@@ -58,15 +58,25 @@ func handleMsgQueryFromMasterNode(ctx sdk.Context, keeper Keeper, msg MsgQueryFr
 }
 
 func handleRegisterVpnService(ctx sdk.Context, keeper Keeper, msg MsgRegisterVpnService) sdk.Result {
+
+	/// BEFORE CALLING STORE HANDLER FUNCTION , PLEASE VERIFY SIGNATURE present inside the message
 	id, err := keeper.RegisterVpnService(ctx, msg)
 	if err != nil {
-		return err.Result()
+		return err.Result()                   /// PLEASE CHANGE THIS TO SPECIFIC ERROR TYPE
 	}
-	d, _ := keeper.cdc.MarshalBinary(id)
+	d, _ := keeper.cdc.MarshalBinary(id)             ///CHECK WHHE DATA OR NOT
+
+
+	///CHECK FOR ADDING TAGS MECHANISM
+	/// WE SHOULD RETURN TAGS
 	return sdk.Result{
 		Data: d,
 	}
 }
+
+
+
+//TODO CHECK QUERY 
 func handleQueryRegisteredVpnService(ctx sdk.Context, keeper Keeper, msg MsgQueryRegisteredVpnService) sdk.Result {
 	id, err := keeper.QueryRegisteredVpnService(ctx, msg)
 	if err != nil {
@@ -77,6 +87,9 @@ func handleQueryRegisteredVpnService(ctx sdk.Context, keeper Keeper, msg MsgQuer
 		Data: d,
 	}
 }
+
+
+/// TODO ://  IMPLEMENT ACL FOR THIS TRANSACTION
 func handleDeleteVpnUser(ctx sdk.Context, keeper Keeper, msg MsgDeleteVpnUser) sdk.Result {
 	id, err := keeper.DeleteVpnService(ctx, msg)
 	if err != nil {
@@ -87,6 +100,9 @@ func handleDeleteVpnUser(ctx sdk.Context, keeper Keeper, msg MsgDeleteVpnUser) s
 		Data: d,
 	}
 }
+
+
+///TODO WHOLE FUNCTION SHOULD BE IMPLEMENTED WITH ACL
 func handleMsgDeleteMasterNode(ctx sdk.Context, keeper Keeper, msg MsgDeleteMasterNode) sdk.Result {
 	id, err := keeper.DeleteMasterNode(ctx, msg)
 	if err != nil {
@@ -97,8 +113,9 @@ func handleMsgDeleteMasterNode(ctx sdk.Context, keeper Keeper, msg MsgDeleteMast
 		Data: d,
 	}
 }
+/// TODO
 func handleMsgPayVpnService(ctx sdk.Context, keeper Keeper, msg MsgPayVpnService) sdk.Result {
-	id, err := keeper.MsgPayVpnService(ctx, msg)
+	id, err := keeper.GetVpnPayment(ctx, msg)
 	if err != nil {
 		return err.Result()
 	}
@@ -121,11 +138,10 @@ func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSigntoVpn) sdk.Result {
 
 func handleMsgSigntoChain(ctx sdk.Context, k Keeper, msg MsgGetVpnPayment) sdk.Result {
 
-	tags, err := k.sendSigntoChain(ctx, msg)
+	tags, err := k.GetVpnPayment(ctx, msg)
 	if err != nil {
 		return err.Result()
 	}
-
 	return sdk.Result{
 		Tags: tags,
 	}

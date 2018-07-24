@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/wire"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
-	sentinel "github.com/cosmos/cosmos-sdk/x/sentinel"
+	sentinel "github.com/cosmos/cosmos-sdk/examples/sut"
 	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
@@ -152,7 +152,7 @@ func PayVpnUsageTxCmd(cdc *wire.Codec) *cobra.Command {
 */
 func RegisterVpnServiceCmd(cdc *wire.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "reg_vpn",
+		Use:   "regvpn",
 		Short: "Register for sentinel vpn service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.NewCoreContextFromViper().WithDecoder(authcmd.GetAccountDecoder(cdc))
@@ -196,7 +196,7 @@ func RegisterVpnServiceCmd(cdc *wire.Codec) *cobra.Command {
 
 func RegisterMasterNodeCmd(cdc *wire.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "Reg_msnode",
+		Use:   "regmsnode",
 		Short: "Register Master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.NewCoreContextFromViper().WithDecoder(authcmd.GetAccountDecoder(cdc))
@@ -221,26 +221,56 @@ func RegisterMasterNodeCmd(cdc *wire.Codec) *cobra.Command {
 
 func QueryVpnServiceCmd(cdc *wire.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "query",
+		Use:   "vpnservice [address]",
 		Short: "query for sentinel vpn service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.NewCoreContextFromViper().WithDecoder(authcmd.GetAccountDecoder(cdc))
-			sender, err := ctx.GetFromAddress()
+			ctx := context.NewCoreContextFromViper()
+			// sender, err := ctx.GetFromAddress()
+			addr, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				 return err
+			}
+			// queryaddress := viper.GetString(flagqueryaddress)
+			// if queryaddress == "" {
+				// return fmt.Errorf("address is not mentioned")
+			// }
+			// address, err := sdk.GetAccAddressBech32(queryaddress)
+			// if err != nil {
+				// return err
+			// }
+			res,err := ctx.QueryStore(key, storeName)
 			if err != nil {
 				return err
+			} else if len(res) == 0 {
+				return fmt.Errorf("No vpn service provider found with address %s", args[0])
 			}
-			queryaddress := viper.GetString(flagqueryaddress)
-			if queryaddress == "" {
-				return fmt.Errorf("address is not mentioned")
+			vpn_service := types.MustUnmarshalValidator(cdc, addr, res)
+			switch viper.Get(cli.OutputFlag) {
+			case "text":
+				human, err := validator.HumanReadableString()
+				if err != nil {
+					return err
+				}
+				fmt.Println(human)
 
+			case "json":
+				// parse out the validator
+				output, err := wire.MarshalJSONIndent(cdc, validator)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(output))
 			}
-			address, err := sdk.GetAccAddressBech32(queryaddress)
-			if err != nil {
-				return err
-			}
+			// TODO output with proofs / machine parseable etc.
+			return cmd
+		},
+	}
 
-			msg := sentinel.MsgQueryRegisteredVpnService{address}
-			res, err := ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, msg, cdc)
+	return cmd
+}
+
+			// msg := sentinel.MsgQueryRegisteredVpnService{address}
+			// res, err := ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, msg, cdc)
 			//fmt.Printf("Vpn serivicer registered with address: %s\n", sender)
 			return nil
 		},
@@ -261,7 +291,6 @@ func QueryMasterNodeCmd(cdc *wire.Codec) *cobra.Command {
 			queryaddress := viper.GetString(flagqueryaddress)
 			if queryaddress == "" {
 				return fmt.Errorf("address is not mentioned")
-
 			}
 			key, err := sdk.GetAccAddressBech32(queryaddress)
 			if err != nil {

@@ -8,5 +8,6 @@ type registervpn struct {
 	ip       string
 	netspeed string
 	ppgb     string
-	coins    sdk.Coin
+	coins    sdk.Coin            // PLEASE CHECK THIS PROPERLY, remove this
+	                                         // TODO :/// MUST ADD LOCATION PARAMETER of type string 
 }

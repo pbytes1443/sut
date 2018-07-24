@@ -4,9 +4,9 @@ import (
 	"crypto"
 	"encoding/json"
 
-	types "github.com/cosmos/cosmos-sdk/examples/sentinel/types"
+	types "github.com/cosmos/cosmos-sdk/examples/sut/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	crypto "github.com/tendermint/go-crypto"
+	crypto "github.com/tendermint/tendermint/crypto"
 )
 //
 
@@ -221,8 +221,8 @@ func (msc MsgDeleteMasterNode) GetSigners() []sdk.Address {
 //
 //
 type MsgPayVpnService struct {
-	coins   sdk.Coin
-	pubkey  *crypto.PubKey
+	coins   sdk.Coin                             //TODO ADD ADDRESS TO THIS TRANSACTION
+	pubkey  *crypto.PubKey           // TODO :Should take it from account bankkeeper.am.GetAccount().Pubkey
 	vpnaddr sdk.Address
 }
 
@@ -231,15 +231,15 @@ func (msc MsgPayVpnService) Type() string {
 }
 
 func (msc MsgPayVpnService) GetSignBytes() []byte {
-	b, _ := json.Marshal(msc)
+	b, _ := json.Marshal(msc)            //todo check for everysuch function
 	return b
 }
 
 func (msc MsgPayVpnService) ValidateBasic() sdk.Error {
-	if msc.coins == nil {
-		return nil
+	if msc.coins == nil {                          /// TODO : parse coin and check for valid denom and minimum amount
+		return nil                                        
 	}
-	if msc.pubkey == nil {
+	if msc.pubkey == nil {                /// remove this thing
 		return nil
 	}
 	return nil

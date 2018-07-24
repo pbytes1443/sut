@@ -11,7 +11,7 @@ import (
 )
 
 type MsgRegisterVpnService struct {
-	address  sdk.Address `json:"address",omitempty`
+	address  sdk.Address `json:"address",omitempty`              //todo please remove off this 
 	ip       string      `json:"ip",omitempty`
 	netspeed string      `json:"netspeed",omitempty`
 	ppgb     string      `json:"ppgb",omitempty`
@@ -61,7 +61,7 @@ type MsgRefund struct{
 func RegisterRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 
 	r.HandleFunc(
-		"/registervpn/{address}/{ip}/{ppgb}/{netspeed}",
+		"/registervpn/{address}/{ip}/{ppgb}/{netspeed}",                  ///todo delineate for query and tx
 		registervpnHandlerFn(ctx, cdc),
 	).Methods("POST")
 
@@ -100,7 +100,7 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 			address := vars["address"]
 			ip := vars["ip"]
 			ppgb := vars["ppgb"]
-			netspeed := vars["netspeed"]
+			netspeed := vars["netspeed"]                     //location 
 			msg := sentinel.MsgRegisterVpnService{address, ip, ppgb, netspeed}
 			res, err := ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, msg, cdc)
 			fmt.Printf("Vpn serivicer registered with address: %s\n", sender)
