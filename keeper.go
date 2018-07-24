@@ -15,6 +15,7 @@ import (
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/cosmos/cosmos-sdk/examples/sentinel/types"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
+	auth "github.com/cosmos/cosmos-sdk/x/auth"
 	//	"strconv"
 	//	"strings"
 
@@ -23,7 +24,7 @@ import (
 )
 
 
-type                                                                                                       map[crypto.PublicKey][]MsgSigntoVpn
+//type  map[crypto.PublicKey][]MsgSigntoVpn
 type vpndb struct {
 	db dbm.DB
 }
@@ -67,15 +68,15 @@ func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, codespace sdk.
 
 func (keeper Keeper) RegisterVpnService(ctx sdk.Context, msg MsgRegisterVpnService) (string, sdk.Error) {
 	var bal sdk.Coin                         /// TODO : PLEASE CHANGE BAL to BALANCE WHEREVER IT's applicable
-	bal=0
 	sentKey := msg.address      /*
-	
+
 	TODO: check the type of sentkey as sdk.ACCaddress
 			   stdTx, ok := tx.(StdTx)
 		if !ok {
 			return ctx, sdk.ErrInternal("tx must be StdTx").Result(), true
 		}
-*/
+*/ var am auth.AccountMapper
+	pubkey=am.GetPubKey(ctx,sentKey)
 	store := ctx.KVStore(keeper.sentStoreKey)
 	var p regvpn                      /// This regvpn is of type registervpn located under types package   use it as types.registervpn
 

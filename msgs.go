@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"time"
 	"crypto"
 	"encoding/json"
 	"reflect"
@@ -24,14 +25,15 @@ import (
 /// USE gofmt command for styling/structing the go code
 
 type MsgRegisterVpnService struct {
-	address  sdk.AccAddress
+	from  sdk.AccAddress
 	ip       string
 	netspeed int64
 	ppgb     int64
+	location string
 	//signature auth.Signature                    // TODO :  sign all the above params using client signature and verify it by using public key from account mapper
 }
-
-func isIp(host string) bool {
+/*
+func validateIp(host string) bool {
 	parts := strings.Split(host, ".")
 
 	if len(parts) < 4 {
@@ -49,7 +51,7 @@ func isIp(host string) bool {
 
 	}
 	return true
-}
+}*/
 
 func (msc MsgRegisterVpnService) Type() string {
 	return "sentinel"
@@ -67,15 +69,18 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 	if msc.address == nil {
 		return sdk.ErrInvalidAddress("Address type is Invalid").Result()
 	}
-	if msc.ppgb != nil || reflect.TypeOf(msc.ppgb) != int64 || msg.ppgb > 0 || msg.ppgb < 1000 {
+	if msc.ppgb == nil || reflect.TypeOf(msc.ppgb) != int64 || ms.ppgb > 0 || msc.ppgb < 1000 {
 
 		return me.ErrCommon("Price per GB is not Valid").Result()
 	}
-	if msc.ip != "" || !isIp(msc.ip) || reflect.TypeOf(msc.ip) != string {
+	if msc.ip == "" || !validateIp(msc.ip) || reflect.TypeOf(msc.ip) != string {
 
 		return me.ErrInvalidIp("Ip is not Valid").Result()
 	}
-	if msc.netspeed != nil || reflect.TypeOf(msc.netspeed) != int64 || msg.netspeed > 0 {
+	if msc.netspeed == nil || reflect.TypeOf(msc.netspeed) != int64 || msg.netspeed > 0 {
+		return me.ErrCommon("NetSpeed is not Valid").Result()
+	}
+	if msc.location == "" || reflect.TypeOf(msc.location) != string {
 		return me.ErrCommon("NetSpeed is not Valid").Result()
 	}
 	return nil
@@ -84,12 +89,13 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 func (msc MsgRegisterVpnService) GetSigners() []sdk.Address {
 	return []sdk.Address{msc.address}
 }
-func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.Address, ip, ppgb, netspeed string) MsgRegisterVpnService {
+func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.AccAddress, ip, ppgb, netspeed,location string) MsgRegisterVpnService {
 	return MsgRegisterVpnService{
-		address:  address,
+		from:  address,
 		ip:       ip,
 		ppgb:     ppgb,
 		netspeed: netspeed,
+		location : location
 	}
 }
 
@@ -99,7 +105,7 @@ func (msc MsgRegisterVpnService) NewMsgRegisterVpnService(address sdk.Address, i
 //
 //
 type MsgRegisterMasterNode struct {
-	address sdk.Address
+	address sdk.AccAddress
 }
 func (msc MsgRegisterMasterNode) Type() string {
 	return "sentinel"
@@ -133,7 +139,7 @@ func (msc MsgRegisterVpnService) NewMsgRegisterMasterNode(address sdk.Address) M
 //
 //
 type MsgQueryRegisteredVpnService struct {
-	address sdk.Address
+	address sdk.AccAddress
 }
 
 /// SHould  restrict QUERYABLE -----> MYTAKS_ALLAGOG
@@ -166,7 +172,7 @@ func (msc MsgQueryRegisteredVpnService) GetSigners() []sdk.Address {
 //
 //
 type MsgQueryFromMasterNode struct {
-	address sdk.Address
+	address sdk.AccAddress
 }
 
 func (msc MsgQueryFromMasterNode) Type() string {
@@ -198,7 +204,7 @@ func (msc MsgQueryFromMasterNode) GetSigners() []sdk.Address {
 //
 //
 type MsgDeleteVpnUser struct {
-	addressService sdk.Address
+	addressService sdk.AccAddress
 }
 
 func (msc MsgDeleteVpnUser) Type() string {
@@ -230,7 +236,7 @@ func (msc MsgDeleteVpnUser) GetSigners() []sdk.Address {
 //
 //
 type MsgDeleteMasterNode struct {
-	address sdk.Address
+	address sdk.AccAddress
 }
 
 func (msc MsgDeleteMasterNode) Type() string {
@@ -268,6 +274,8 @@ type MsgPayVpnService struct {
 	coins   sdk.Coin
 	pubkey  *crypto.PubKey
 	vpnaddr sdk.Address
+	timestamp time.Time()
+	from sdk.AccAddress
 }
 
 func (msc MsgPayVpnService) Type() string {
@@ -305,7 +313,7 @@ type MsgSigntoVpn struct {
 	address   sdk.Adress
 	sessionid int64
 	signature auth.Signature
-	from      sdk.Address
+	from      sdk.AccAddress
 }
 
 func (msc MsgSigntoVpn) Type() string {
