@@ -1,27 +1,25 @@
 package types
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 )
 
 func GetNewSessionId() []byte {
-	sessionId := crypto.CRandBytes(20)
-	return sessionId
+	Sessionid := crypto.CRandBytes(20)
+	return Sessionid
 }
-func GetNewSessionMap(publickey crypto.PubKeySecp256k1,
-	coins sdk.Coin, timestamp int64, vpnAddr sdk.AccAddress) SessionMap {
-	//
-	Key := publickey.String() //changed
-	sessionmap := map[publickey]session{
-		totalLockedCoins : coins
+func GetNewSessionMap(publickey crypto.PubKey, coins sdk.Coin, timestamp time.Time, vpnAddr sdk.AccAddress) SessionMap {
+	var sessionmap SessionMap
+	sessionmap[publickey] = session{ // may be changed the intiallization using make
+		totalLockedCoins:   coins,
 		currentLockedCoins: coins,
-		UnlockedCoins: 0,
-		counter:0
-		timestamp:    timestamp,
-		vpnAddr:      vpnAddr,
-		
-
+		UnlockedCoins:      sdk.NewCoin("", 0),
+		counter:            0,
+		timestamp:          time.Time{},
+		vpnAddr:            vpnAddr,
 	}
 	return sessionmap
 }
@@ -31,8 +29,8 @@ type session struct {
 	currentLockedCoins sdk.Coin
 	UnlockedCoins      sdk.Coin
 	counter            int32
-	timestamp          int64
+	timestamp          time.Time
 	vpnAddr            sdk.AccAddress
 }
 
-type SessionMap map[string]session
+type SessionMap map[crypto.PubKey]session

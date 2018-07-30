@@ -5,12 +5,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/gorilla/mux"
 	//"flags"
+	sentinel "github.com/cosmos/cosmos-sdk/examples/sentinel"
 )
 
-func RegisterRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
+func RegisterRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec, keeper sentinel.Keeper) {
 
 	ServiceRoutes(ctx, r, cdc)
-	QueryRoutes(ctx, r, cdc)
+	QueryRoutes(ctx, r, cdc, keeper)
 
 }
 
