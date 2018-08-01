@@ -3,7 +3,6 @@ package sentinel
 import (
 	"encoding/json"
 	"reflect"
-	"time"
 
 	"strconv"
 	"strings"
@@ -306,17 +305,17 @@ func (msc MsgDeleteMasterNode) GetSigners() []sdk.AccAddress {
 type MsgPayVpnService struct {
 	Coins sdk.Coin
 	//pubkey    crypto.PubKey
-	Vpnaddr   sdk.AccAddress
-	Timestamp time.Time
-	From      sdk.AccAddress
+	Vpnaddr sdk.AccAddress
+	//	Timestamp time.Time
+	From sdk.AccAddress
 }
 
-func NewMsgPayVpnService(coins sdk.Coin, vaddr sdk.AccAddress, Timestamp time.Time, from sdk.AccAddress) MsgPayVpnService {
+func NewMsgPayVpnService(coins sdk.Coin, vaddr sdk.AccAddress, from sdk.AccAddress) MsgPayVpnService {
 	return MsgPayVpnService{
-		Coins:     coins,
-		Vpnaddr:   vaddr,
-		Timestamp: Timestamp,
-		From:      from,
+		Coins:   coins,
+		Vpnaddr: vaddr,
+		//	Timestamp: Timestamp,
+		From: from,
 	}
 
 }

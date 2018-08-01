@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"time"
 
 	// "fmt"
 	"net/http"
@@ -30,10 +29,10 @@ type MsgRegisterVpnService struct {
 	Ppgb         int64  `json:"ppgb"`
 	Location     string `json:"location"`
 	Localaccount string `json:"account"`
-	Password     string `json:"password"`
-	ChainID      string `json:"chain-id"`
-	Gas          int64  `json:"gas"`
-	Sequence     int64  `json:"sequence"`
+	//Password     string `json:"password"`
+	ChainID string `json:"chain-id"`
+	Gas     int64  `json:"gas"`
+	//Sequence     int64  `json:"sequence"`
 }
 type MsgRegisterMasterNode struct {
 	Address string `json:"address",omitempty`
@@ -54,10 +53,10 @@ type MsgPayVpnService struct {
 	From         string `json:"address", omitempty`
 	Vpnaddr      string `json:"vaddress", omitempty`
 	Localaccount string `json:"account"`
-	Password     string `json:"password"`
-	ChainID      string `json:"chain-id"`
-	Gas          int64  `json:"gas"`
-	Sequence     int64  `json:"sequence"`
+	//	Password     string `json:"password"`
+	ChainID  string `json:"chain-id"`
+	Gas      int64  `json:"gas"`
+	Sequence int64  `json:"sequence"`
 }
 
 type MsgSigntoVpn struct {
@@ -161,30 +160,40 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 		}
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithGas(msg.Gas)
-		ctx = ctx.WithSequence(msg.Sequence)
+		ctx = ctx.WithFromAddressName(msg.Localaccount)
+		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+		//ctx=ctx.WithAccountNumber(msg.AccountNumber)
 		msg1 := sentinel.NewMsgRegisterVpnService(addr, msg.Ip, msg.Ppgb, msg.Netspeed, msg.Location)
-		txBytes, err := ctx.SignAndBuild(msg.Localaccount, msg.Password, []sdk.Msg{msg1}, cdc)
+		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(err.Error()))
+
+			panic(err)
 			return
 		}
+		//ctx = ctx.WithSequence(msg.Sequence)
 
-		res, err := ctx.BroadcastTx(txBytes)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		// txBytes, err := ctx.SignAndBuild(msg.Localaccount, msg.Password, []sdk.Msg{msg1}, cdc)
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusUnauthorized)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
 
-		output, err := json.MarshalIndent(res, "", "  ")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		// res, err := ctx.BroadcastTx(txBytes)
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
 
-		w.Write(output)
+		// output, err := json.MarshalIndent(res, "", "  ")
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
+
+		// w.Write(output)
 
 	}
 	return nil
@@ -220,7 +229,7 @@ func registermasterdHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Han
 		ctx = ctx.WithGas(msg.Gas)
 		ctx = ctx.WithFromAddressName(msg.Name)
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
-
+		//ctx=ctx.WithAccountNumber(msg.AccountNumber)
 		msg1 := sentinel.NewMsgRegisterMasterNode(addr)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
@@ -328,10 +337,8 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		err = json.Unmarshal(body, &msg)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Invalid  Msg Unmarshal function Request"))
+			// w.Write([]byte("Invalid  Msg Unmarshal function Request"))
 			return
-		} else {
-			w.Write([]byte(" Request"))
 		}
 		if msg.Coins == "" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -371,30 +378,49 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithGas(msg.Gas)
 		ctx = ctx.WithSequence(msg.Sequence)
-		Time := time.Now()
-		msg1 := sentinel.NewMsgPayVpnService(coins, vaddr, Time, addr)
-		txBytes, err := ctx.SignAndBuild(msg.Localaccount, msg.Password, []sdk.Msg{msg1}, cdc)
+		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+		//Time := time.Now()
+		msg1 := sentinel.NewMsgPayVpnService(coins, vaddr, addr)
+		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(err.Error()))
+
+			panic(err)
 			return
 		}
+		// ctx = ctx.WithChainID(msg.ChainID)
+		// ctx = ctx.WithGas(msg.Gas)
+		// ctx = ctx.WithFromAddressName(msg.Name)
+		// ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+		// //ctx=ctx.WithAccountNumber(msg.AccountNumber)
+		// msg1 := sentinel.NewMsgRegisterMasterNode(addr)
+		// err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
+		// if err != nil {
 
-		res, err := ctx.BroadcastTx(txBytes)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		// 	panic(err)
+		// 	return
+		// }
+		// txBytes, err := ctx.SignAndBuild(msg.Localaccount, msg.Password, []sdk.Msg{msg1}, cdc)
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusUnauthorized)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
 
-		output, err := json.MarshalIndent(res, "", "  ")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
+		// res, err := ctx.BroadcastTx(txBytes)
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
 
-		w.Write(output)
+		// output, err := json.MarshalIndent(res, "", "  ")
+		// if err != nil {
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	w.Write([]byte(err.Error()))
+		// 	return
+		// }
+
+		// w.Write(output)
 
 	}
 	return nil

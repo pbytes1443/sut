@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"encoding/json"
 
 	//	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	wire "github.com/cosmos/cosmos-sdk/wire"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	bank "github.com/cosmos/cosmos-sdk/x/bank"
+	log "github.com/logger"
 	crypto "github.com/tendermint/tendermint/crypto"
 	//	"strconv"
 	//	"strings"
@@ -23,6 +25,7 @@ type Keeper struct {
 
 	// codespace
 	codespace sdk.CodespaceType
+	account   auth.AccountMapper
 }
 
 // type PayVpnInit struct {
@@ -45,12 +48,13 @@ type Sign struct {
 	sign    crypto.PubKeySecp256k1
 }
 
-func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, codespace sdk.CodespaceType) Keeper {
+func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, am auth.AccountMapper, codespace sdk.CodespaceType) Keeper {
 	keeper := Keeper{
 		sentStoreKey: key,
 		cdc:          cdc,
 		coinKeeper:   ck,
 		codespace:    codespace, ////learn WHAT THIS DOES
+		account:      am,
 	}
 	return keeper
 }
@@ -58,21 +62,11 @@ func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, codespace sdk.
 func (keeper Keeper) RegisterVpnService(ctx sdk.Context, msg MsgRegisterVpnService) (string, sdk.Error) {
 	sentKey := msg.From.String()
 	store := ctx.KVStore(keeper.sentStoreKey)
-	var vpnreg senttype.Registervpn
+
+	vpnreg := senttype.NewVpnRegister(msg.Ip, msg.Location, msg.Ppgb, msg.Netspeed)
 	bz, _ := keeper.cdc.MarshalBinary(vpnreg)
 	store.Set([]byte(sentKey), bz)
 	return "", nil
-}
-
-func (keeper Keeper) QueryRegisteredVpnService(ctx sdk.Context, msg MsgQueryRegisteredVpnService) (senttype.Registervpn, sdk.Error) {
-	store := ctx.KVStore(keeper.sentStoreKey)
-	var vpnreg senttype.Registervpn
-	bz := store.Get(msg.address)
-	if bz != nil {
-		sdk.ErrCommon("Address is not valid").Result()
-	}
-	keeper.cdc.UnmarshalBinary(bz, &vpnreg)
-	return vpnreg, nil
 }
 
 func (keeper Keeper) RegisterMasterNode(ctx sdk.Context, msg MsgRegisterMasterNode) (sdk.AccAddress, sdk.Error) {
@@ -95,15 +89,28 @@ func (keeper Keeper) DeleteMasterNode(ctx sdk.Context, msg MsgDeleteMasterNode) 
 	return msg.address, nil
 }
 
-func (keeper Keeper) PayVpnService(ctx sdk.Context, msg MsgPayVpnService, acc auth.AccountMapper) (string, sdk.Error) {
+func (keeper Keeper) PayVpnService(ctx sdk.Context, msg MsgPayVpnService) (string, sdk.Error) {
 	//var sessionMap senttype.SessionMap
-	publicKey := acc.GetAccount(ctx, msg.From).GetPubKey()
+	publicKey := keeper.account.GetAccount(ctx, msg.From).GetPubKey()
 	// fmt.Println(publicKey.String())
-	sessionMap := senttype.GetNewSessionMap(publicKey, msg.Coins, msg.Timestamp, msg.Vpnaddr)
-	store := ctx.KVStore(keeper.sentStoreKey)
+	log.WriteLog("Public Key from Vpn Service " + publicKey.Address().String())
+	log.WriteLog("denom" + msg.Coins.Denom)
 	sentKey := senttype.GetNewSessionId()
-	bz, _ := keeper.cdc.MarshalBinary(sessionMap) //PLEASE USE SMAE VARIABLE NAMES  FOR FUNCTION parameter
+	log.WriteLog("vpnaddr" + msg.Vpnaddr.String())
+	sessionMap := senttype.GetNewSessionMap(publicKey, msg.Coins, msg.Vpnaddr)
+	//session Map
+	data, err := json.Marshal(sessionMap[publicKey.Address().String()])
+	if err != nil {
+		panic(err)
+	}
+	log.WriteLog("Session Map Object" + string(data))
+	store := ctx.KVStore(keeper.sentStoreKey)
+
+	log.WriteLog("Seesion Id" + string(sentKey))
+	bz, _ := json.Marshal(sessionMap) //PLEASE USE SMAE VARIABLE NAMES  FOR FUNCTION parameter
+	log.WriteLog("bz map bytes" + string(bz))
 	store.Set(sentKey, bz)
+	log.WriteLog("Seesion Id" + string(sentKey))
 	keeper.coinKeeper.SubtractCoins(ctx, msg.From, sdk.Coins{msg.Coins}) //coins type sdk.Coins
 	return string(sentKey), nil
 }

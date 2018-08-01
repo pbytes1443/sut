@@ -1,13 +1,20 @@
 package types
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-)
-
 type Registervpn struct {
-	ip       string
-	netspeed string
-	ppgb     string
-	coins    sdk.Coin // PLEASE CHECK THIS PROPERLY, remove this
+	Ip       string
+	Netspeed int64
+	Ppgb     int64
+	// Coins    sdk.Coin
+	Location string
+	// PLEASE CHECK THIS PROPERLY, remove this
 	// TODO :/// MUST ADD LOCATION PARAMETER of type string
+}
+
+func NewVpnRegister(ip, location string, ppgb, netspeed int64) Registervpn {
+	return Registervpn{
+		Ip:       ip,
+		Netspeed: netspeed,
+		Ppgb:     netspeed,
+		Location: location,
+	}
 }

@@ -2,16 +2,15 @@ package sentinel
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
-func NewHandler(k Keeper, acc auth.AccountMapper) sdk.Handler {
+func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case MsgRegisterVpnService:
 			return handleRegisterVpnService(ctx, k, msg)
-		case MsgQueryRegisteredVpnService:
-			return handleQueryRegisteredVpnService(ctx, k, msg)
+		// case MsgQueryRegisteredVpnService:
+		// 	return handleQueryRegisteredVpnService(ctx, k, msg)
 		case MsgDeleteVpnUser:
 			return handleDeleteVpnUser(ctx, k, msg)
 		case MsgRegisterMasterNode:
@@ -21,7 +20,7 @@ func NewHandler(k Keeper, acc auth.AccountMapper) sdk.Handler {
 		case MsgDeleteMasterNode:
 			return handleMsgDeleteMasterNode(ctx, k, msg)
 		case MsgPayVpnService:
-			return handleMsgPayVpnService(ctx, k, acc, msg)
+			return handleMsgPayVpnService(ctx, k, msg)
 		// case MsgSigntoVpn:
 		// 	return handleMsgSend(ctx, k, msg)
 		// case MsgGetVpnPayment:
@@ -76,18 +75,6 @@ func handleRegisterVpnService(ctx sdk.Context, keeper Keeper, msg MsgRegisterVpn
 	}
 }
 
-//TODO CHECK QUERY
-func handleQueryRegisteredVpnService(ctx sdk.Context, keeper Keeper, msg MsgQueryRegisteredVpnService) sdk.Result {
-	id, err := keeper.QueryRegisteredVpnService(ctx, msg)
-	if err != nil {
-		return err.Result()
-	}
-	d, _ := keeper.cdc.MarshalJSON(id)
-	return sdk.Result{
-		Data: d,
-	}
-}
-
 /// TODO ://  IMPLEMENT ACL FOR THIS TRANSACTION
 func handleDeleteVpnUser(ctx sdk.Context, keeper Keeper, msg MsgDeleteVpnUser) sdk.Result {
 	id, err := keeper.DeleteVpnService(ctx, msg)
@@ -113,8 +100,8 @@ func handleMsgDeleteMasterNode(ctx sdk.Context, keeper Keeper, msg MsgDeleteMast
 }
 
 /// TODO
-func handleMsgPayVpnService(ctx sdk.Context, keeper Keeper, acc auth.AccountMapper, msg MsgPayVpnService) sdk.Result {
-	id, err := keeper.PayVpnService(ctx, msg, acc)
+func handleMsgPayVpnService(ctx sdk.Context, keeper Keeper, msg MsgPayVpnService) sdk.Result {
+	id, err := keeper.PayVpnService(ctx, msg)
 	if err != nil {
 		return err.Result()
 	}
