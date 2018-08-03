@@ -13,23 +13,42 @@ type ClientSignature struct {
 	Sessionid []byte
 	Counter   int64
 	Signature Signature
+	IsFinal   bool
 }
 type Signature struct {
 	Pubkey    crypto.PubKey    `json:"pub_key"` // optional
 	Signature crypto.Signature `json:"signature"`
 }
 
+func NewClientSignature(coins sdk.Coin, sesid []byte, counter int64, pubkey crypto.PubKey, sign crypto.Signature, isfinal bool) ClientSignature {
+	return ClientSignature{
+		Coins:     coins,
+		Sessionid: sesid,
+		Counter:   counter,
+		IsFinal:   isfinal,
+		Signature: Signature{
+			Pubkey:    pubkey,
+			Signature: sign,
+		},
+	}
+}
+func (a ClientSignature) Value() Signature {
+	return a.Signature
+}
+
 type StdSig struct {
 	coins     sdk.Coin
 	sessionid []byte
 	counter   int64
+	isfinal   bool
 }
 
-func ClientStdSignBytes(coins sdk.Coin, sessionid []byte, counter int64) []byte {
+func ClientStdSignBytes(coins sdk.Coin, sessionid []byte, counter int64, isfinal bool) []byte {
 	bz, err := json.Marshal(StdSig{
 		coins:     coins,
 		sessionid: sessionid,
 		counter:   counter,
+		isfinal:   isfinal,
 	})
 	if err != nil {
 		panic(err)

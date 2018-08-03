@@ -2,6 +2,8 @@ package sentinel
 
 import (
 	"encoding/json"
+	"math"
+	"time"
 
 	//	"fmt"
 
@@ -23,23 +25,10 @@ type Keeper struct {
 	coinKeeper   bank.Keeper
 	cdc          *wire.Codec
 
-	// codespace
 	codespace sdk.CodespaceType
 	account   auth.AccountMapper
 }
 
-// type PayVpnInit struct {
-// 	coins   sdk.Coin
-// 	pubkey  *crypto.PubKey
-// 	session map[pubkey]lock
-// }
-// type lock struct {
-// 	lock  sdk.Coin
-// 	total sdk.Coin
-// 	unlock sdk.Coin
-// 	coins_to add sdk.Coin
-// 	time time.Time()
-// }
 type Sign struct {
 	coin    sdk.Coin
 	vpnaddr sdk.AccAddress
@@ -53,7 +42,7 @@ func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, am auth.Accoun
 		sentStoreKey: key,
 		cdc:          cdc,
 		coinKeeper:   ck,
-		codespace:    codespace, ////learn WHAT THIS DOES
+		codespace:    codespace,
 		account:      am,
 	}
 	return keeper
@@ -90,102 +79,157 @@ func (keeper Keeper) DeleteMasterNode(ctx sdk.Context, msg MsgDeleteMasterNode) 
 }
 
 func (keeper Keeper) PayVpnService(ctx sdk.Context, msg MsgPayVpnService) (string, sdk.Error) {
-	//var sessionMap senttype.SessionMap
+
 	publicKey := keeper.account.GetAccount(ctx, msg.From).GetPubKey()
-	// fmt.Println(publicKey.String())
 	log.WriteLog("Public Key from Vpn Service " + publicKey.Address().String())
 	log.WriteLog("denom" + msg.Coins.Denom)
 	sentKey := senttype.GetNewSessionId()
 	log.WriteLog("vpnaddr" + msg.Vpnaddr.String())
-	sessionMap := senttype.GetNewSessionMap(publicKey, msg.Coins, msg.Vpnaddr)
-	//session Map
-	data, err := json.Marshal(sessionMap[publicKey.Address().String()])
+	// pubj, err := json.Marshal(publicKey)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	var uPub crypto.PubKey
+	// err = json.Unmarshal(pubj, &uPub)
+	// if err != nil {
+	// 	log.WriteLog("unmarswhal pub key failed")
+	// }
+
+	a, err := keeper.cdc.MarshalBinary(publicKey)
+	if err != nil {
+		log.WriteLog("unmarswhal pub key  keeper.cdc.unmarshal failed")
+	}
+	log.WriteLog("mrashal bytee keeper  " + string(a))
+	err = keeper.cdc.UnmarshalBinary(a, &uPub)
+	if err != nil {
+		log.WriteLog("unmarshal failed from keeper.cdc.unmarshal")
+	}
+	log.WriteLog("Unmarshal pubkey upub " + uPub.Address().String())
+	//	log.WriteLog("pubkey in json from json.Marshal :" + string(pubj[:]))
+
+	// pubkey, err := keeper.cdc.MarshalBinary(publicKey)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// log.WriteLog("pubkey in string :" + string(pubkey[:]))
+	sessionMap := senttype.GetNewSessionMap(string(a[:]), msg.Coins, msg.Vpnaddr)
+
+	store := ctx.KVStore(keeper.sentStoreKey)
+
+	log.WriteLog("Seesion Id" + string(sentKey))
+
+	bz, err := json.Marshal(sessionMap)
+	if err != nil {
+
+	}
+
+	log.WriteLog("bz map bytes SessionMap Obj" + string(bz))
+	store.Set(sentKey, bz)
+	keeper.coinKeeper.SubtractCoins(ctx, msg.From, sdk.Coins{msg.Coins})
+	return string(sentKey[:]), nil
+}
+
+func (keeper Keeper) GetVpnPayment(ctx sdk.Context, msg MsgGetVpnPayment) ([]byte, sdk.Error) {
+
+	var clientSession senttype.SessionMap
+	var ClientPubkey crypto.PubKey
+	store := ctx.KVStore(keeper.sentStoreKey)
+	x := store.Get(msg.Sessionid)
+	log.WriteLog("unmarshal string ......" + string(x))
+	err := json.Unmarshal(x, &clientSession)
 	if err != nil {
 		panic(err)
 	}
-	log.WriteLog("Session Map Object" + string(data))
-	store := ctx.KVStore(keeper.sentStoreKey)
 
-	log.WriteLog("Seesion Id" + string(sentKey))
-	bz, _ := json.Marshal(sessionMap) //PLEASE USE SMAE VARIABLE NAMES  FOR FUNCTION parameter
-	log.WriteLog("bz map bytes" + string(bz))
-	store.Set(sentKey, bz)
-	log.WriteLog("Seesion Id" + string(sentKey))
-	keeper.coinKeeper.SubtractCoins(ctx, msg.From, sdk.Coins{msg.Coins}) //coins type sdk.Coins
-	return string(sentKey), nil
-}
-
-// func (keeper Keeper) sendSigntoVpn(ctx sdk.Context, msg MsgSigntoVpn) sdk.Error {
-// 	// var k keys.Keybasei
-// 	// k, err = Keybase.GetKeyBase()
-// 	// sig, pub,err := k.Sign(name,passphrase,msg)
-// 	// msg.sign:sig
-// 	vpnsignstore[pub][msg]
-// 	return nil
-// }/*
-/*
-func (keeper Keeper) GetVpnPayment(ctx sdk.Context, msg MsgGetVpnPayment) ([]byte, sdk.Error) { // TODO Change the function name to GetVpnPayment
-
-	var clientSession senttype.SessionMap
-	signature := msg.ClientSig.Signature
-	pubKey := signature.Pubkey
-	sig := signature.Signature
-	store := ctx.KVStore(keeper.sentStoreKey)
-	key := msg.ClientSig.Sessionid
-	x := store.Get(key) //changes to be done
-	err := keeper.cdc.UnmarshalBinary(x, &clientSession)
-
-	//ClientPubkey := reflect.ValueOf(clientSession).MapKeys()[0]
-	//ClientPubkey.
-
-		ctx.
-	if ClientPubkey.String() != pubKey.String() {
-		sdk.ErrCommon("Invalid Public key").Result()
+	keys := make([]string, 0, len(clientSession))
+	for k := range clientSession {
+		keys = append(keys, k)
 	}
-	signBytes := senttype.ClientStdSignBytes(msg.ClientSig.Coins, msg.ClientSig.Sessionid, msg.ClientSig.Counter)
-	//need to be evaluated
-	pubkey := sdk.GetValPubKeyBech32(ClientPubkey.String())
-	if !(ClientPubkey.VerifyBytes(msg.GetSignBytes(), signature.Signature)) { //type cast
-		return nil, sdk.ErrUnauthorized("signature verification failed").Result()
-	}
-	clientSessionData := clientSession[ClientPubkey]
-	if clientsig := msg.clientsig; clientSessionData.currentLockedCoins > 0 && clientSessionData.counter <= clientSig.counter {
-		CoinsToAdd := msg.clientSig.coins.Minus(UnlockedCoins)
-		clientSessionData.currentLockedCoins = clientSessionData.currentLockedCoins.Minus(CoinsToAdd)
-		clientSessionData.UnlockedCoins = clientSessionData.UnlockedCoins.Plus(clientSessionData.totalLockedCoins.Minus(clientSessionData.currentLockedCoins))
-		clientSessionData.counter = msg.clientSig.counter
-		keeper.bankKeeper.AddCoins(ctx, clientSessionData.vpnaddr, coins)
-
-	}
-	sentkey := clientSig.sessionid
-	bz, _ := keeper.cdc.MarshalBinary(clientSessionData)
-	store.Set(sentKey, bz)
-	return sentKey, nil
-}
-func (keeper Keeper) RefundBal(ctx sdk.Context, msg MsgRefund) (sdk.AccAddress, sdk.Error) {
-
-	var t time.Time
-	var clientSession senttype.SessionMap
-	store := ctx.KVStore(keeper.sentStoreKey)
-	x := store.Get(msg.sessionid)
-	err := keeper.cdc.UnmarshalBinary(x, &clientSession)
+	//ke := reflect.ValueOf(clientSession).MapKeys()[0]
+	// bz, err := hex.DecodeString(keys[0])
 	// if err != nil {
 	// 	return nil, err
 	// }
-	a := reflect.ValueOf(keeper.coinKeeper)
-	c := a.FieldByName("am").GetAccount(ctx, msg.from).PubKey()
-	pubkey := keeper.coinKeeper.am.GetPubkey(ctx, msg.from)
-	clientSessionData := clientSession[pubkey]
-	tm := clientSessionData.timestamp
-	diff := time.Now().Sub(tm)
-	//
-	if diff.Hours() >= 24 {
-		coins = clientSessionData.currentLockedCoins
-		keeper.bankKeeper.AddCoins(ctx, msg.address, coins)
-		store.Delete(msg.sessionid)
+	a2, err := json.Marshal(clientSession[keys[0]])
+	if err != nil {
+		log.WriteLog("unmarshal pubkey keeper.cdc.failesd")
+	}
+	log.WriteLog("pubkey associated struct" + string(a2))
+
+	err = keeper.cdc.UnmarshalBinary([]byte(keys[0]), &ClientPubkey)
+	if err != nil {
+		log.WriteLog("unmarshal pubkey keeper.cdc.failesd")
+	}
+	log.WriteLog("pubkey address" + ClientPubkey.Address().String())
+	log.WriteLog("clients session of publickey map bytes   : " + keys[0])
+	a, err := json.Marshal(keys[0])
+	if err != nil {
+		panic(err)
+	}
+	log.WriteLog("pubksy " + string(a[:]))
+
+	pubkey, err := crypto.PubKeyFromBytes([]byte(keys[0]))
+	if err != nil {
+		log.WriteLog("unmarshal Failed from crypto.pubkey")
+	}
+	a1, err := json.Marshal(pubkey)
+	if err != nil {
+		panic(err)
+	}
+	log.WriteLog("strinf pubkey " + string(a1))
+
+	err = json.Unmarshal([]byte(keys[0]), &ClientPubkey) //
+	if err != nil {
+		log.WriteLog("unmarshal Failed")
+	}
+	log.WriteLog("client adress " + ClientPubkey.Address().String())
+
+	log.WriteLog("msg sessionfi" + string(msg.Sessionid[:]) + "  counter " + string(msg.Counter) + "   the final vale ")
+	signBytes := senttype.ClientStdSignBytes(msg.Coins, msg.Sessionid, msg.Counter, msg.IsFinal) //errr
+
+	if !ClientPubkey.VerifyBytes(signBytes, msg.Signature) {
+		return nil, sdk.ErrUnauthorized("signature from the keeper.go verification failed")
+	}
+	clientSessionData := clientSession[keys[0]]
+	if clientSessionData.CurrentLockedCoins.IsPositive() && clientSessionData.Counter <= msg.Counter {
+		CoinsToAdd := msg.Coins
+		clientSessionData.CurrentLockedCoins = clientSessionData.CurrentLockedCoins.Minus(CoinsToAdd)
+		clientSessionData.Counter = msg.Counter
+		keeper.coinKeeper.AddCoins(ctx, clientSessionData.VpnAddr, sdk.Coins{CoinsToAdd})
+
+		sentKey := msg.Sessionid
+		bz, _ := keeper.cdc.MarshalBinary(clientSessionData)
+		store.Set(sentKey, bz)
+		return sentKey, nil
 	}
 
-	return msg.from, nil
+	return nil, nil
+}
+
+func (keeper Keeper) RefundBal(ctx sdk.Context, msg MsgRefund) (sdk.AccAddress, sdk.Error) {
+
+	var clientSession senttype.SessionMap
+	store := ctx.KVStore(keeper.sentStoreKey)
+	x := store.Get(msg.Sessionid)
+	err := json.Unmarshal(x, &clientSession)
+	if err != nil {
+		panic(err)
+	}
+	pubkey := keeper.account.GetAccount(ctx, msg.From).GetPubKey()
+	cpubkey, err := keeper.cdc.MarshalBinary(pubkey)
+	if err != nil {
+
+	}
+	ctime := time.Now().UnixNano()
+	if int64(math.Abs(float64(ctime))) >= 86400000 {
+
+		keeper.coinKeeper.AddCoins(ctx, msg.From, sdk.Coins{clientSession[string(cpubkey[:])].CurrentLockedCoins})
+		store.Delete(msg.Sessionid)
+		return msg.From, nil
+	} else {
+		sdk.ErrCommon("time is less than 24 hours ").Result()
+	}
+
+	return nil, nil
 
 }
-*/

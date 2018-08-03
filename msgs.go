@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/examples/sentinel/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	crypto "github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 //
@@ -303,19 +302,16 @@ func (msc MsgDeleteMasterNode) GetSigners() []sdk.AccAddress {
 //
 //
 type MsgPayVpnService struct {
-	Coins sdk.Coin
-	//pubkey    crypto.PubKey
+	Coins   sdk.Coin
 	Vpnaddr sdk.AccAddress
-	//	Timestamp time.Time
-	From sdk.AccAddress
+	From    sdk.AccAddress
 }
 
 func NewMsgPayVpnService(coins sdk.Coin, vaddr sdk.AccAddress, from sdk.AccAddress) MsgPayVpnService {
 	return MsgPayVpnService{
 		Coins:   coins,
 		Vpnaddr: vaddr,
-		//	Timestamp: Timestamp,
-		From: from,
+		From:    from,
 	}
 
 }
@@ -347,11 +343,11 @@ func (msc MsgPayVpnService) GetSigners() []sdk.AccAddress {
 //
 //
 type MsgSigntoVpn struct {
-	coins     sdk.Coin
-	address   sdk.AccAddress
-	sessionid []byte
-	signature crypto.Signature
-	from      sdk.AccAddress
+	Coins     sdk.Coin
+	Address   sdk.AccAddress
+	Sessionid []byte
+
+	From sdk.AccAddress
 }
 
 func (msc MsgSigntoVpn) Type() string {
@@ -367,27 +363,23 @@ func (msc MsgSigntoVpn) GetSignBytes() []byte {
 }
 
 func (msc MsgSigntoVpn) ValidateBasic() sdk.Error {
-	var a int64
-	if msc.coins.IsZero() || !(msc.coins.IsNotNegative()) {
+	var a []byte
+	if msc.Coins.IsZero() || !(msc.Coins.IsNotNegative()) {
 		return sdk.ErrInsufficientFunds("Error insufficent coins")
 	}
-	if reflect.TypeOf(msc.sessionid) != reflect.TypeOf(a) {
+	if reflect.TypeOf(msc.Sessionid) != reflect.TypeOf(a) {
 		return sdk.ErrCommon(" Invalid SessionId")
 	}
-	if msc.address == nil {
+	if msc.Address == nil {
 		return sdk.ErrInvalidAddress("Invalid Address")
 	}
-	if msc.from == nil {
+	if msc.From == nil {
 		return sdk.ErrInvalidAddress("Invalid  from Address")
-	}
-
-	if msc.signature == nil {
-		return sdk.ErrCommon("Signature is Invalid") //TODO validate signature
 	}
 	return nil
 }
 func (msc MsgSigntoVpn) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msc.from}
+	return []sdk.AccAddress{msc.From}
 }
 
 //
@@ -396,12 +388,45 @@ func (msc MsgSigntoVpn) GetSigners() []sdk.AccAddress {
 //
 
 type MsgGetVpnPayment struct {
-	ClientSig types.ClientSignature
-	from      sdk.AccAddress
+	Coins     sdk.Coin
+	Sessionid []byte
+	Counter   int64
+	Signature crypto.Signature
+	Pubkey    crypto.PubKey
+	From      sdk.AccAddress
+	IsFinal   bool
 }
 
+func NewMsgGetVpnPayment(coin sdk.Coin, sid []byte, counter int64, addr sdk.AccAddress, sign crypto.Signature, pub crypto.PubKey, isfinal bool) MsgGetVpnPayment {
+	return MsgGetVpnPayment{
+		Coins:     coin,
+		Sessionid: sid,
+		Counter:   counter,
+		Signature: sign,
+		Pubkey:    pub,
+		From:      addr,
+		IsFinal:   isfinal,
+	}
+
+}
 func (msc MsgGetVpnPayment) Type() string {
 	return "sentinel"
+}
+
+type sign struct {
+	Coins     sdk.Coin
+	Sessionid []byte
+	Counter   int64
+	IsFinal   bool
+}
+
+func NewSign(coins sdk.Coin, Sess []byte, counter int64, isFinal bool) sign {
+	return sign{
+		Coins:     coins,
+		Sessionid: Sess,
+		Counter:   counter,
+		IsFinal:   isFinal,
+	}
 }
 
 func (msc MsgGetVpnPayment) GetSignBytes() []byte {
@@ -409,18 +434,17 @@ func (msc MsgGetVpnPayment) GetSignBytes() []byte {
 	if err != nil {
 		return nil
 	}
-	//b, _ := json.Marshal(msc)
 	return byte_format
 }
 
 func (msc MsgGetVpnPayment) ValidateBasic() sdk.Error {
-	if msc.ClientSig.Coins.IsZero() || !(msc.ClientSig.Coins.IsNotNegative()) {
+	if msc.Coins.IsZero() || !(msc.Coins.IsNotNegative()) {
 		return sdk.ErrInsufficientFunds("Error insufficent coins")
 	}
 	return nil
 }
 func (msc MsgGetVpnPayment) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msc.from}
+	return []sdk.AccAddress{msc.From}
 }
 
 //
@@ -429,10 +453,18 @@ func (msc MsgGetVpnPayment) GetSigners() []sdk.AccAddress {
 //
 //
 type MsgRefund struct {
-	from      sdk.AccAddress
-	sessionid []byte
+	From      sdk.AccAddress
+	Sessionid []byte
+	//Time      int64
 }
 
+func NewMsgRefund(addr sdk.AccAddress, sid []byte) MsgRefund {
+	return MsgRefund{
+		From:      addr,
+		Sessionid: sid,
+	}
+
+}
 func (msc MsgRefund) Type() string {
 	return "sentinel"
 }
@@ -446,11 +478,11 @@ func (msc MsgRefund) GetSignBytes() []byte {
 }
 
 func (msc MsgRefund) ValidateBasic() sdk.Error {
-	if msc.sessionid != nil {
+	if msc.Sessionid == nil {
 		return sdk.ErrCommon("SessionId is Invalid")
 	}
 	return nil
 }
 func (msc MsgRefund) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msc.from}
+	return []sdk.AccAddress{msc.From}
 }

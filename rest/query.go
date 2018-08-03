@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/gorilla/mux"
+	log "github.com/logger"
 )
 
 const (
@@ -54,7 +55,8 @@ func queryvpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec, decoder auth.Ac
 			w.Write([]byte(err.Error()))
 			return
 		}
-		res, err := ctx.QueryStore(auth.AddressStoreKey(addr), storeName)
+		log.WriteLog("Account Store " + ctx.AccountStore)
+		res, err := ctx.QueryStore(auth.AddressStoreKey(addr), ctx.AccountStore)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("couldn't query account. Error: %s", err.Error())))

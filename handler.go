@@ -9,24 +9,18 @@ func NewHandler(k Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case MsgRegisterVpnService:
 			return handleRegisterVpnService(ctx, k, msg)
-		// case MsgQueryRegisteredVpnService:
-		// 	return handleQueryRegisteredVpnService(ctx, k, msg)
 		case MsgDeleteVpnUser:
 			return handleDeleteVpnUser(ctx, k, msg)
 		case MsgRegisterMasterNode:
 			return handleMsgRegisterMasterNode(ctx, k, msg)
-		// case MsgQueryFromMasterNode:
-		// 	return handleMsgQueryFromMasterNode(ctx, k, msg)
 		case MsgDeleteMasterNode:
 			return handleMsgDeleteMasterNode(ctx, k, msg)
 		case MsgPayVpnService:
 			return handleMsgPayVpnService(ctx, k, msg)
-		// case MsgSigntoVpn:
-		// 	return handleMsgSend(ctx, k, msg)
-		// case MsgGetVpnPayment:
-		// 	return handleMsgSigntoChain(ctx, k, msg)
-		// case MsgRefund:
-		// 	return handleMsgRefund(ctx, k, msg)
+		case MsgGetVpnPayment:
+			return handleMsgGetVpnPayment(ctx, k, msg)
+		case MsgRefund:
+			return handleMsgRefund(ctx, k, msg)
 		default:
 			return sdk.ErrUnknownRequest("unrecognized message").Result()
 		}
@@ -45,33 +39,18 @@ func handleMsgRegisterMasterNode(ctx sdk.Context, keeper Keeper, msg MsgRegister
 	}
 }
 
-/*
-func handleMsgQueryFromMasterNode(ctx sdk.Context, keeper Keeper, msg MsgQueryFromMasterNode) sdk.Result {
+func handleRegisterVpnService(ctx sdk.Context, keeper Keeper, msg MsgRegisterVpnService) sdk.Result {
 
-	id, err := keeper.QueryFromRegisterMasterNode(ctx, msg)
+	id, err := keeper.RegisterVpnService(ctx, msg)
 	if err != nil {
 		return err.Result()
 	}
 	d, _ := keeper.cdc.MarshalBinary(id)
+
+	tag := sdk.NewTags("vpn registered address", []byte(msg.From.String()))
 	return sdk.Result{
 		Data: d,
-	}
-
-}
-*/
-func handleRegisterVpnService(ctx sdk.Context, keeper Keeper, msg MsgRegisterVpnService) sdk.Result {
-
-	/// BEFORE CALLING STORE HANDLER FUNCTION , PLEASE VERIFY SIGNATURE present inside the message
-	id, err := keeper.RegisterVpnService(ctx, msg)
-	if err != nil {
-		return err.Result() /// PLEASE CHANGE THIS TO SPECIFIC ERROR TYPE
-	}
-	d, _ := keeper.cdc.MarshalBinary(id) ///CHECK WHHE DATA OR NOT
-
-	///CHECK FOR ADDING TAGS MECHANISM
-	/// WE SHOULD RETURN TAGS
-	return sdk.Result{
-		Data: d,
+		Tags: tag,
 	}
 }
 
@@ -106,24 +85,14 @@ func handleMsgPayVpnService(ctx sdk.Context, keeper Keeper, msg MsgPayVpnService
 		return err.Result()
 	}
 	d, _ := keeper.cdc.MarshalJSON(id)
+	tag := sdk.NewTags("sender address", []byte(msg.From.String())).AppendTag("seesion id", []byte(id))
 	return sdk.Result{
 		Data: d,
+		Tags: tag,
 	}
 }
 
-// func handleMsgSend(ctx sdk.Context, k Keeper, msg MsgSigntoVpn) sdk.Result {
-// 	// NOTE: totalIn == totalOut should already have been checked
-// 	tags, err := k.sendSigntoVpn(ctx, msg)
-// 	if err != nil {
-// 		return err.Result()
-// 	}
-
-// 	return sdk.Result{
-// 		Tags: tags,
-// 	}
-// }
-/*
-func handleMsgSigntoChain(ctx sdk.Context, k Keeper, msg MsgGetVpnPayment) sdk.Result {
+func handleMsgGetVpnPayment(ctx sdk.Context, k Keeper, msg MsgGetVpnPayment) sdk.Result {
 
 	sessionid, err := k.GetVpnPayment(ctx, msg)
 	if err != nil {
@@ -134,12 +103,13 @@ func handleMsgSigntoChain(ctx sdk.Context, k Keeper, msg MsgGetVpnPayment) sdk.R
 	// 	return sdk.NewTags("", []byte(msg.from.String())).
 	// 		AppendTag("receiver", []byte(msg.Receiver.String()))
 	// }
-	tags := sdk.NewTags("Vpn Provider Address:", []byte(msg.from.String())).AppendTag("seesionId", sessionid)
+	tags := sdk.NewTags("Vpn Provider Address:", []byte(msg.From.String())).AppendTag("seesionId", sessionid)
 
 	return sdk.Result{
 		Tags: tags,
 	}
 }
+
 func handleMsgRefund(ctx sdk.Context, k Keeper, msg MsgRefund) sdk.Result {
 	address, err := k.RefundBal(ctx, msg)
 	if err != nil {
@@ -147,7 +117,7 @@ func handleMsgRefund(ctx sdk.Context, k Keeper, msg MsgRefund) sdk.Result {
 	}
 	tags := sdk.NewTags("client Refund Address:", []byte(address.String()))
 	return sdk.Result{
+		Data: address,
 		Tags: tags,
 	}
 }
-*/

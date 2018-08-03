@@ -13,6 +13,8 @@ func RegisterWire(cdc *wire.Codec) {
 	cdc.RegisterConcrete(MsgQueryFromMasterNode{}, "sentienl/querythevpnservice", nil)
 	cdc.RegisterConcrete(MsgDeleteMasterNode{}, "sentinel/deletemasternode", nil)
 	cdc.RegisterConcrete(MsgPayVpnService{}, "sentinel/payvpnservice", nil)
+	cdc.RegisterConcrete(MsgRefund{}, "sentinel/clientrefund", nil)
+	cdc.RegisterConcrete(MsgGetVpnPayment{}, "sentinel/getvpnpayment", nil)
 }
 
 var msgCdc = wire.NewCodec()
