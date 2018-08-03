@@ -265,7 +265,10 @@ func RefundHandleFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		json.Unmarshal(body, &msg)
+		err=json.Unmarshal(body, &msg)
+		if err!=nil {
+			sdk.ErrCommon("json unmarshal failed").Result()
+		}
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithFromAddressName(msg.Name)
 		ctx = ctx.WithGas(msg.Gas)

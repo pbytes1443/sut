@@ -6,6 +6,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	log "github.com/logger"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 var pool = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -15,9 +16,10 @@ type Session struct {
 	CurrentLockedCoins sdk.Coin
 	Counter            int64
 	Timestamp          int64
-	VpnAddr            sdk.AccAddress
+	VpnPubKey           crypto.PubKey
+	CPubKey             crypto.PubKey
 }
-type SessionMap map[string]Session
+
 
 func GetNewSessionId() []byte {
 
@@ -30,15 +32,14 @@ func GetNewSessionId() []byte {
 	return bytes
 
 }
-func GetNewSessionMap(publickey string, coins sdk.Coin, vpnAddr sdk.AccAddress) SessionMap {
-	Sess := make(SessionMap)
+func GetNewSessionMap(coins sdk.Coin, vpnpub crypto.PubKey,cpub crypto.PubKey) Session {
 	ti := time.Now().UnixNano()
-	Sess[publickey] = Session{
+	return Session{
 		TotalLockedCoins:   coins,
 		CurrentLockedCoins: coins,
-		VpnAddr:            vpnAddr,
+		VpnPubKey:           vpnpub,
+		CPubKey:cpub,
 		Timestamp:          ti,
 	}
 
-	return Sess
 }
