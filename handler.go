@@ -28,24 +28,24 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 func handleMsgRegisterMasterNode(ctx sdk.Context, keeper Keeper, msg MsgRegisterMasterNode) sdk.Result {
-	id, err := keeper.RegisterMasterNode(ctx, msg)
+	addr, err := keeper.RegisterMasterNode(ctx, msg)
 	if err != nil {
 		return err.Result() //CHANGE THIS SPECIFIC ERROR TYPE
 	}
-	//d, _ := keeper.cdc.MarshalBinary(id)
+	d, _ := keeper.cdc.MarshalBinary(addr)
 	return sdk.Result{
 		Tags: msg.Tags(),
-		Data: id,
+		Data: d,
 	}
 }
 
 func handleRegisterVpnService(ctx sdk.Context, keeper Keeper, msg MsgRegisterVpnService) sdk.Result {
 
-	id, err := keeper.RegisterVpnService(ctx, msg)
+	addr, err := keeper.RegisterVpnService(ctx, msg)
 	if err != nil {
 		return err.Result()
 	}
-	d, _ := keeper.cdc.MarshalBinary(id)
+	d, _ := keeper.cdc.MarshalBinary(addr)
 
 	tag := sdk.NewTags("vpn registered address", []byte(msg.From.String()))
 	return sdk.Result{
@@ -61,8 +61,10 @@ func handleDeleteVpnUser(ctx sdk.Context, keeper Keeper, msg MsgDeleteVpnUser) s
 		return err.Result()
 	}
 	d, _ := keeper.cdc.MarshalBinary(id)
+	tag := sdk.NewTags("deleted Vpn address", []byte(msg.Vaddr))
 	return sdk.Result{
 		Data: d,
+		Tags:tag,
 	}
 }
 
@@ -73,8 +75,10 @@ func handleMsgDeleteMasterNode(ctx sdk.Context, keeper Keeper, msg MsgDeleteMast
 		return err.Result()
 	}
 	d, _ := keeper.cdc.MarshalJSON(id)
+	tag := sdk.NewTags("deleted MasterNode address", []byte(msg.Maddr))
 	return sdk.Result{
 		Data: d,
+		Tags:tag,
 	}
 }
 

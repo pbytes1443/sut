@@ -11,7 +11,7 @@ import (
 func RegisterRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec, keeper sentinel.Keeper) {
 
 	ServiceRoutes(ctx, r, cdc)
-	QueryRoutes(ctx, r, cdc, keeper)
+	QueryRoutes(ctx,r,cdc,keeper)
 
 }
 

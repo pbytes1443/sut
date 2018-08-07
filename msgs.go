@@ -3,9 +3,10 @@ package sentinel
 import (
 	"encoding/json"
 	"reflect"
-
 	"strconv"
 	"strings"
+
+	//log "github.com/logger"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -21,17 +22,27 @@ import (
 /// USE gofmt command for styling/structing the go code
 
 type MsgRegisterVpnService struct {
-	From     sdk.AccAddress `json:"address",omitempty`
-	Ip       string         `json:"ip",omitempty`
-	Netspeed int64          `json:"netspeed",omitempty`
-	Ppgb     int64          `json:"ppgb",omitempty`
-	Location string         `json:"location",omitempty`
+	From     sdk.AccAddress
+	Ip       string
+	Netspeed int64
+	Ppgb     int64
+	Location string
+}
+
+func NewMsgRegisterVpnService(address sdk.AccAddress, ip string, ppgb int64, netspeed int64, location string) MsgRegisterVpnService {
+	return MsgRegisterVpnService{
+		From:     address,
+		Ip:       ip,
+		Ppgb:     ppgb,
+		Netspeed: netspeed,
+		Location: location,
+	}
 }
 
 func validateIp(host string) bool {
 	parts := strings.Split(host, ".")
 
-	if len(parts) < 4 {
+	if len(parts) < 4 || len(parts) > 4 {
 		return false
 	}
 
@@ -66,7 +77,7 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 	if msc.From == nil {
 		return sdk.ErrInvalidAddress(" Invalid Address")
 	}
-	if reflect.TypeOf(msc.Ppgb) != reflect.TypeOf(a) || msc.Ppgb < 0 || msc.Ppgb > 1000 {
+	if reflect.TypeOf(msc.Ppgb) != reflect.TypeOf(a) || msc.Ppgb <= 0 || msc.Ppgb > 1000 {
 
 		return sdk.ErrCommon("Price per GB is not Valid")
 	}
@@ -74,7 +85,7 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 
 		return sdk.ErrInvalidIp("Ip is not Valid")
 	}
-	if reflect.TypeOf(msc.Netspeed) != reflect.TypeOf(a) || msc.Netspeed < 0 {
+	if reflect.TypeOf(msc.Netspeed) != reflect.TypeOf(a) || msc.Netspeed <= 0 {
 		return sdk.ErrCommon("NetSpeed is not Valid")
 	}
 	if msc.Location == "" || reflect.TypeOf(msc.Location) != reflect.TypeOf(s) {
@@ -86,22 +97,6 @@ func (msc MsgRegisterVpnService) ValidateBasic() sdk.Error {
 func (msc MsgRegisterVpnService) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msc.From}
 }
-
-func NewMsgRegisterVpnService(address sdk.AccAddress, ip string, ppgb int64, netspeed int64, location string) MsgRegisterVpnService {
-	return MsgRegisterVpnService{
-		From:     address,
-		Ip:       ip,
-		Ppgb:     ppgb,
-		Netspeed: netspeed,
-		Location: location,
-	}
-}
-
-//
-//
-//
-//
-//
 
 type MsgRegisterMasterNode struct {
 	Address sdk.AccAddress
@@ -224,12 +219,14 @@ func (msc MsgQueryFromMasterNode) GetSigners() []sdk.AccAddress {
 //
 //
 type MsgDeleteVpnUser struct {
-	address sdk.AccAddress `json:"address", omitempty`
+	From  sdk.AccAddress
+	Vaddr sdk.AccAddress
 }
 
-func NewMsgDeleteVpnUser(addr sdk.AccAddress) MsgDeleteVpnUser {
+func NewMsgDeleteVpnUser(From sdk.AccAddress, Vaddr sdk.AccAddress) MsgDeleteVpnUser {
 	return MsgDeleteVpnUser{
-		address: addr,
+		From:  From,
+		Vaddr: Vaddr,
 	}
 }
 
@@ -246,14 +243,16 @@ func (msc MsgDeleteVpnUser) GetSignBytes() []byte {
 }
 
 func (msc MsgDeleteVpnUser) ValidateBasic() sdk.Error {
-	if msc.address == nil {
+	if msc.From == nil {
 		return sdk.ErrInvalidAddress("Address type is Invalid")
 	}
-
+	if msc.Vaddr == nil {
+		return sdk.ErrInvalidAddress("VPN Address type is Invalid")
+	}
 	return nil
 }
 func (msc MsgDeleteVpnUser) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msc.address}
+	return []sdk.AccAddress{msc.From}
 }
 
 //
@@ -262,12 +261,14 @@ func (msc MsgDeleteVpnUser) GetSigners() []sdk.AccAddress {
 //
 //
 type MsgDeleteMasterNode struct {
-	address sdk.AccAddress `json:"address", omitempty`
+	Address sdk.AccAddress
+	Maddr   sdk.AccAddress
 }
 
-func NewMsgDeleteMasterNode(addr sdk.AccAddress) MsgDeleteMasterNode {
+func NewMsgDeleteMasterNode(addr sdk.AccAddress, Maddr sdk.AccAddress) MsgDeleteMasterNode {
 	return MsgDeleteMasterNode{
-		address: addr,
+		Address: addr,
+		Maddr:   Maddr,
 	}
 }
 func (msc MsgDeleteMasterNode) Type() string {
@@ -282,18 +283,18 @@ func (msc MsgDeleteMasterNode) GetSignBytes() []byte {
 	return byte_format
 }
 
+//TODO:CHECK THE SIZE OF MSG.ADDRESS at each and every ValidateBasic() METHOD.
 func (msc MsgDeleteMasterNode) ValidateBasic() sdk.Error {
-
-	//TODO:CHECK THE SIZE OF MSG.ADDRESS at each and every ValidateBasic() METHOD.
-
-	if msc.address == nil {
+	if msc.Address == nil {
 		return sdk.ErrInvalidAddress("Address type is Invalid")
 	}
-
+	if msc.Maddr == nil {
+		return sdk.ErrInvalidAddress("VPN Address type is Invalid")
+	}
 	return nil
 }
 func (msc MsgDeleteMasterNode) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msc.address}
+	return []sdk.AccAddress{msc.Address}
 }
 
 //
@@ -330,6 +331,9 @@ func (msc MsgPayVpnService) GetSignBytes() []byte {
 func (msc MsgPayVpnService) ValidateBasic() sdk.Error {
 	if msc.Coins.IsZero() || !(msc.Coins.IsNotNegative()) {
 		return sdk.ErrInsufficientFunds("Error insufficient coins")
+	}
+	if msc.From == nil || msc.Vpnaddr == nil {
+		return sdk.ErrInvalidAddress("Invalid address type")
 	}
 	return nil
 }
@@ -486,3 +490,5 @@ func (msc MsgRefund) ValidateBasic() sdk.Error {
 func (msc MsgRefund) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msc.From}
 }
+
+//msg Decoder fo the Query:

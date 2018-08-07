@@ -16,10 +16,9 @@ type Session struct {
 	CurrentLockedCoins sdk.Coin
 	Counter            int64
 	Timestamp          int64
-	VpnPubKey           crypto.PubKey
-	CPubKey             crypto.PubKey
+	VpnPubKey          crypto.PubKey
+	CPubKey            crypto.PubKey
 }
-
 
 func GetNewSessionId() []byte {
 
@@ -32,13 +31,13 @@ func GetNewSessionId() []byte {
 	return bytes
 
 }
-func GetNewSessionMap(coins sdk.Coin, vpnpub crypto.PubKey,cpub crypto.PubKey) Session {
+func GetNewSessionMap(coins sdk.Coin, vpnpub crypto.PubKey, cpub crypto.PubKey) Session {
 	ti := time.Now().UnixNano()
 	return Session{
 		TotalLockedCoins:   coins,
 		CurrentLockedCoins: coins,
-		VpnPubKey:           vpnpub,
-		CPubKey:cpub,
+		VpnPubKey:          vpnpub,
+		CPubKey:            cpub,
 		Timestamp:          ti,
 	}
 

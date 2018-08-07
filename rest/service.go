@@ -46,20 +46,24 @@ type MsgRegisterMasterNode struct {
 }
 
 type MsgDeleteVpnUser struct {
-	address sdk.AccAddress `json:"address", omitempty`
+	Address string `json:"address", omitempty`
+	Name    string `json:"name"`
+	ChainID string `json:"chain-id"`
+	Gas     int64  `json:"gas"`
 }
 type MsgDeleteMasterNode struct {
-	address sdk.AccAddress `json:"address", omitempty`
+	Address string `json:"address", omitempty`
+	Name    string `json:"name"`
+	ChainID string `json:"chain-id"`
+	Gas     int64  `json:"gas"`
 }
 type MsgPayVpnService struct {
 	Coins        string `json:"coins", omitempty`
-	From         string `json:"address", omitempty`
 	Vpnaddr      string `json:"vaddress", omitempty`
 	Localaccount string `json:"account"`
 	//	Password     string `json:"password"`
-	ChainID  string `json:"chain-id"`
-	Gas      int64  `json:"gas"`
-	Sequence int64  `json:"sequence"`
+	ChainID string `json:"chain-id"`
+	Gas     int64  `json:"gas"`
 }
 
 type MsgSigntoVpn struct {
@@ -86,7 +90,7 @@ type MsgRefund struct {
 	Name      string `json:"name"`
 	Sessionid string `json:"session_id", omitempty`
 	ChainID   string `json:"chain-id"`
-	Gas       int64  `json:"gas`
+	Gas       int64  `json:"gas"`
 }
 
 // client Signature :
@@ -103,27 +107,27 @@ type ClientSignature struct {
 func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 
 	r.HandleFunc(
-		"/registervpn",
+		"/register-vpn",
 		registervpnHandlerFn(ctx, cdc),
 	).Methods("POST")
 
 	r.HandleFunc(
-		"/register_master_node",
+		"/register-master",
 		registermasterdHandlerFn(ctx, cdc),
 	).Methods("POST")
 
 	r.HandleFunc(
-		"/refund/",
+		"/refund",
 		RefundHandleFn(ctx, cdc),
 	).Methods("POST")
 
 	r.HandleFunc(
-		"/deletemaster/{address}",
+		"/delete-master",
 		deleteMasterHandlerFn(ctx, cdc),
 	).Methods("POST")
 
 	r.HandleFunc(
-		"/deletevpnnode/{address}",
+		"/delete-vpn",
 		deleteVpnHandlerFn(ctx, cdc),
 	).Methods("POST")
 	r.HandleFunc(
@@ -131,21 +135,58 @@ func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 		PayVpnServiceHandlerFn(ctx, cdc),
 	).Methods("POST")
 	r.HandleFunc(
-		"/sendsign",
+		"/send-sign",
 		SendSignHandlerFn(ctx, cdc),
 	).Methods("POST")
 	r.HandleFunc(
-		"/getvpnpayment",
+		"/get-vpnpayment",
 		GetVpnPaymentHandlerFn(ctx, cdc),
 	).Methods("POST")
 
 }
+
+/**
+* @api {post} /register-vpn To register VPN service provider.
+* @apiName registerVPN
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} ip Ip address of VPN service provider.
+* @apiParam {Number}  netspeed Net speed of VPN service.
+* @apiParam {Number} ppgb Price per GB.
+* @apiParam {String} location  Location of service provider.
+* @apiParam {String} account Account name of service provider.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AccountAlreadyExists VPN service provider already exists
+* @apiErrorExample AccountAlreadyExists-Response:
+* {
+*   success: false,
+*   message: 'Account is already registered..'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Account is registered successfully'
+* }
+*/
+
+type Response struct {
+	Success bool   `json:"status"`
+	Message string `json:"message"`
+}
+
+func NewResponse(status bool, msg string) Response {
+	//var res Response
+	return Response{
+		Success: status,
+		Message: msg,
+	}
+}
+
 func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var a int64
 		msg := MsgRegisterVpnService{}
 		body, err := ioutill.ReadAll(r.Body)
-		w.Write(body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -156,8 +197,6 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Invalid  Msg Unmarshal function Request"))
 			return
-		} else {
-			w.Write([]byte(" Request"))
 		}
 
 		if !validateIp(msg.Ip) {
@@ -182,21 +221,48 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 		ctx = ctx.WithFromAddressName(msg.Localaccount)
 		addr, err := ctx.GetFromAddress()
 		if err != nil {
-			panic(err)
+			sdk.ErrCommon("Fetching address is failed")
 		}
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+
 		//ctx=ctx.WithAccountNumber(msg.AccountNumber)
 		msg1 := sentinel.NewMsgRegisterVpnService(addr, msg.Ip, msg.Ppgb, msg.Netspeed, msg.Location)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
+		//var result Response
 		if err != nil {
-
-			panic(err)
+			response := NewResponse(false, "Account is already registered.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
 			return
+			//panic(err)
 		}
+		response := NewResponse(true, "Account is added successfully")
+		data, _ := json.Marshal(response)
 
+		w.Write(data)
 	}
 	return nil
 }
+
+/**
+* @api {post} /register-master To register Master Node.
+* @apiName registerMasterNode
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} name  Account name of Master Node.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AccountAlreadyExists Master Node already exists
+* @apiErrorExample AccountAlreadyExists-Response:
+* {
+*   success: false,
+*   message: 'Account is already registered..'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Account is registered successfully'
+* }
+*/
 func registermasterdHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -221,71 +287,41 @@ func registermasterdHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Han
 		msg1 := sentinel.NewMsgRegisterMasterNode(addr)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
-
-			panic(err)
+			response := NewResponse(false, "Account is already registered.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
 			return
+			//panic(err)
 		}
+		response := NewResponse(true, "Account is registered successfully")
+		data, _ := json.Marshal(response)
+
+		w.Write(data)
 
 	}
 	return nil
 }
 
-func deleteMasterHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		var msg MsgDeleteMasterNode
-		var err error
-		body, err := ioutill.ReadAll(r.Body)
-		if err != nil {
-			return
-		}
-		json.Unmarshal(body, &msg)
-		if msg.address == nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(" entered invalid address."))
-			return
-		}
-		msg1 := sentinel.NewMsgDeleteMasterNode(msg.address)
-		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
-		if err != nil {
-
-			panic(err)
-			return
-		}
-	}
-	return nil
-}
-
-func RefundHandleFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		msg := MsgRefund{}
-		var err error
-		body, err := ioutill.ReadAll(r.Body)
-		if err != nil {
-			return
-		}
-		err=json.Unmarshal(body, &msg)
-		if err!=nil {
-			sdk.ErrCommon("json unmarshal failed").Result()
-		}
-		ctx = ctx.WithChainID(msg.ChainID)
-		ctx = ctx.WithFromAddressName(msg.Name)
-		ctx = ctx.WithGas(msg.Gas)
-		addr, err := ctx.GetFromAddress()
-		if err != nil {
-			panic(err)
-		}
-		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
-		log.WriteLog("session id from client" + msg.Sessionid)
-		msg1 := sentinel.NewMsgRefund(addr, []byte(msg.Sessionid))
-		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
+/**
+* @api {post} /delete-vpn To Delete VPN Node.
+* @apiName  deleteVpnNode
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} address  Address of VPN Node which we want to delete.
+* @apiParam {String} name AccountName of the person who is deleting the VPN node.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AccountNotExists VPN Node not exists
+* @apiErrorExample AccountNotExists-Response:
+* {
+*   success: false,
+*   message: 'Account is not exist..'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Account is deleted successfully'
+* }
+*/
 func deleteVpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -297,15 +333,107 @@ func deleteVpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFu
 			return
 		}
 		json.Unmarshal(body, &msg)
-		if msg.address == nil {
+		if msg.Address == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(" entered invalid address."))
 			return
 		}
-
+		Vaddr, err := sdk.AccAddressFromBech32(msg.Address)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		ctx = ctx.WithGas(msg.Gas)
+		ctx = ctx.WithFromAddressName(msg.Name)
+		ctx = ctx.WithChainID(msg.ChainID)
+		from, err := ctx.GetFromAddress()
+		if err != nil {
+			panic(err)
+		}
+		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
 		// msg:= sentinel.MsgDeleteVpnUser{addres}
-		msg1 := sentinel.NewMsgDeleteVpnUser(msg.address)
+		log.WriteLog(from.String() + "......" + Vaddr.String())
+		msg1 := sentinel.NewMsgDeleteVpnUser(from, Vaddr)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
+		if err != nil {
+			response := NewResponse(false, "Account is not exist.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
+			return
+			//panic(err)
+		}
+		response := NewResponse(true, "Account is deleted successfully")
+		data, _ := json.Marshal(response)
+
+		w.Write(data)
+	}
+	return nil
+}
+
+/**
+* @api {post} /delete-master To Delete Master Node.
+* @apiName  deleteMasterNode
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} address  Address of Master Node which we want to delete.
+* @apiParam {String} name AccountName of the person who is deleting the Master node.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AccountNotExists Master Node not exists
+* @apiErrorExample AccountNotExists-Response:
+* {
+*   success: false,
+*   message: 'Account is not exist..'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Account is deleted successfully'
+* }
+*/
+func deleteMasterHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var msg MsgDeleteMasterNode
+		var err error
+		body, err := ioutill.ReadAll(r.Body)
+		if err != nil {
+			return
+		}
+		json.Unmarshal(body, &msg)
+		if msg.Address == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(" entered invalid address."))
+			return
+		}
+		Maddr, err := sdk.AccAddressFromBech32(msg.Address)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		ctx = ctx.WithGas(msg.Gas)
+		ctx = ctx.WithFromAddressName(msg.Name)
+		ctx = ctx.WithChainID(msg.ChainID)
+		from, err := ctx.GetFromAddress()
+		if err != nil {
+			panic(err)
+		}
+		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+		// msg:= sentinel.MsgDeleteVpnUser{addres}
+		msg1 := sentinel.NewMsgDeleteMasterNode(from, Maddr)
+		log.WriteLog(from.String() + "......" + Maddr.String())
+		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
+		if err != nil {
+			response := NewResponse(false, "Account is not exist.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
+			return
+			//panic(err)
+		}
+		response := NewResponse(true, "Account is deleted successfully")
+		data, _ := json.Marshal(response)
+		w.Write(data)
 	}
 	return nil
 }
@@ -330,12 +458,32 @@ func validateIp(host string) bool {
 	return true
 }
 
+/**
+* @api {post} /payvpn To Pay for VPN service.
+* @apiName  payVPN service
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} coins  Amount to pay for vpn service.
+* @apiParam {String} vaddress Address of the vpn service provider.
+* @apiParam {String} account Account name of Client
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AccountNotExists VPN Node not exists
+* @apiErrorExample AccountNotExists-Response:
+* {
+*   success: false,
+*   message: 'VPN address  is not registered..'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Payment done successfully'
+* }
+*/
 func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//var msg MsgRegisterVpnService
 		msg := MsgPayVpnService{}
 		body, err := ioutill.ReadAll(r.Body)
-		w.Write(body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -364,18 +512,6 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 			w.Write([]byte(err.Error()))
 			return
 		}
-		if msg.From == "" {
-
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("  invalid address"))
-			return
-		}
-		addr, err := sdk.AccAddressFromBech32(msg.From)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
-			return
-		}
 		coins, err := sdk.ParseCoin(msg.Coins)
 		if err != nil {
 			panic(err)
@@ -384,23 +520,89 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		ctx = ctx.WithFromAddressName(msg.Localaccount)
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithGas(msg.Gas)
-		ctx = ctx.WithSequence(msg.Sequence)
+		//ctx = ctx.WithSequence(msg.Sequence)
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
-		//Time := time.Now()
+		addr, err := ctx.GetFromAddress()
+		if err != nil {
+			return
+		}
 		msg1 := sentinel.NewMsgPayVpnService(coins, vaddr, addr)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
-
-			panic(err)
+			response := NewResponse(false, "VPN address is not registered.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
 			return
+			//panic(err)
 		}
+		response := NewResponse(true, "Payment done successfully")
+		data, _ := json.Marshal(response)
+		w.Write(data)
 
 	}
 	return nil
 }
 
-//To create client signature....... This is not a transaction......
+/**
+* @api {post} /refund To Refund the balance of client.
+* @apiName  Refund
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} name AccountName of the client.
+* @apiParam {String} session-id session-id.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {Number} gas Gas value.
+* @apiError AddressInvalid Address is not valid
+* @apiErrorExample AddressInvalid-Response:
+* {
+*   success: false,
+*   message: 'Address is not associated with this SessionId'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Balance added Successfully'
+* }
+*/
 
+func RefundHandleFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		msg := MsgRefund{}
+		var err error
+		body, err := ioutill.ReadAll(r.Body)
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal(body, &msg)
+		if err != nil {
+			sdk.ErrCommon("json unmarshal failed").Result()
+		}
+		ctx = ctx.WithChainID(msg.ChainID)
+		ctx = ctx.WithFromAddressName(msg.Name)
+		ctx = ctx.WithGas(msg.Gas)
+		addr, err := ctx.GetFromAddress()
+		if err != nil {
+			panic(err)
+		}
+		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
+		log.WriteLog("session id from client" + msg.Sessionid)
+		msg1 := sentinel.NewMsgRefund(addr, []byte(msg.Sessionid))
+		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
+		if err != nil {
+			panic(err)
+			response := NewResponse(false, "Address is not associated with SessionId")
+			data, _ := json.Marshal(response)
+			w.Write(data)
+			return
+			//panic(err)
+		}
+		response := NewResponse(true, "Balance added Successfully")
+		data, _ := json.Marshal(response)
+		w.Write(data)
+	}
+}
+
+//To create client signature....... This is not a transaction......
 func SendSignHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -452,6 +654,29 @@ var Signature struct {
 	Signature crypto.Signature
 }
 
+/**
+* @api {post} /get-vpnpayment To get payment of vpn service
+* @apiName  GetVPNPayment
+* @apiGroup Sentinel-Tendermint
+* @apiParam {String} coin Amount to send VPN node.
+* @apiParam {String} session-id session-id.
+* @apiParam {Number} counter Counter value.
+* @apiParam {String} chain-id chain-id.
+* @apiParam {String} account Account name of client.
+* @apiParam {Number} gas gas value.
+* @apiParam {Boolean} isfinal is this final signature or not.
+* @apiError Signature VerificationFailed signature verification failed
+* @apiErrorExample SignatureFailed-Response:
+* {
+*   success: false,
+*   message: 'Signature varification is faild.'
+* }
+* @apiSuccessExample Response:
+{
+*   success: true,
+*   message: 'Payment done successfully'
+* }
+*/
 func GetVpnPaymentHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -506,9 +731,15 @@ func GetVpnPaymentHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		msg1 := sentinel.NewMsgGetVpnPayment(coins, []byte(msg.Sessionid), msg.Counter, addr, Signature.Signature, Signature.Pubkey, msg.IsFinal)
 		err = ctx.EnsureSignBuildBroadcast(ctx.FromAddressName, []sdk.Msg{msg1}, cdc)
 		if err != nil {
-			panic(err)
+			response := NewResponse(false, "Signature varification is faild.")
+			data, _ := json.Marshal(response)
+			w.Write(data)
 			return
+			//panic(err)
 		}
+		response := NewResponse(true, "Payment done successfully")
+		data, _ := json.Marshal(response)
+		w.Write(data)
 	}
 	return nil
 }

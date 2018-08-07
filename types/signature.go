@@ -37,18 +37,18 @@ func (a ClientSignature) Value() Signature {
 }
 
 type StdSig struct {
-	coins     sdk.Coin
-	sessionid []byte
-	counter   int64
-	isfinal   bool
+	Coins     sdk.Coin
+	Sessionid []byte
+	Counter   int64
+	Isfinal   bool
 }
 
 func ClientStdSignBytes(coins sdk.Coin, sessionid []byte, counter int64, isfinal bool) []byte {
 	bz, err := json.Marshal(StdSig{
-		coins:     coins,
-		sessionid: sessionid,
-		counter:   counter,
-		isfinal:   isfinal,
+		Coins:     coins,
+		Sessionid: sessionid,
+		Counter:   counter,
+		Isfinal:   isfinal,
 	})
 	if err != nil {
 		panic(err)
