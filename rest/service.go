@@ -109,7 +109,7 @@ func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 	r.HandleFunc(
 		"/register-vpn",
 		registervpnHandlerFn(ctx, cdc),
-	).Methods("POST")
+	).Methods("DELETE")
 
 	r.HandleFunc(
 		"/register-master",
@@ -221,7 +221,7 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 		ctx = ctx.WithFromAddressName(msg.Localaccount)
 		addr, err := ctx.GetFromAddress()
 		if err != nil {
-			sdk.ErrCommon("Fetching address is failed")
+			sdk.ErrInvalidAddress("The given Adress is Invalid")
 		}
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
 
@@ -278,7 +278,7 @@ func registermasterdHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Han
 		ctx = ctx.WithGas(msg.Gas)
 		addr, err := ctx.GetFromAddress()
 		if err != nil {
-			panic(err)
+			sdk.ErrInvalidAddress("The given Adress is Invalid")
 		}
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithGas(msg.Gas)
@@ -417,7 +417,7 @@ func deleteMasterHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handle
 		ctx = ctx.WithChainID(msg.ChainID)
 		from, err := ctx.GetFromAddress()
 		if err != nil {
-			panic(err)
+			sdk.ErrInvalidAddress("The given Adress is Invalid")
 		}
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
 		// msg:= sentinel.MsgDeleteVpnUser{addres}
@@ -514,7 +514,8 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		}
 		coins, err := sdk.ParseCoin(msg.Coins)
 		if err != nil {
-			panic(err)
+
+			sdk.ErrInternal("Parse Coins Failed")
 		}
 
 		ctx = ctx.WithFromAddressName(msg.Localaccount)
@@ -524,6 +525,7 @@ func PayVpnServiceHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
 		addr, err := ctx.GetFromAddress()
 		if err != nil {
+			sdk.ErrInvalidAddress("The given Adress is Invalid")
 			return
 		}
 		msg1 := sentinel.NewMsgPayVpnService(coins, vaddr, addr)
@@ -575,14 +577,15 @@ func RefundHandleFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFunc {
 		}
 		err = json.Unmarshal(body, &msg)
 		if err != nil {
-			sdk.ErrCommon("json unmarshal failed").Result()
+			sentinel.ErrUnMarshal("Unmarshal of Given Message Type is failed")
+
 		}
 		ctx = ctx.WithChainID(msg.ChainID)
 		ctx = ctx.WithFromAddressName(msg.Name)
 		ctx = ctx.WithGas(msg.Gas)
 		addr, err := ctx.GetFromAddress()
 		if err != nil {
-			panic(err)
+			sdk.ErrInvalidAddress("The given Adress is Invalid")
 		}
 		ctx = ctx.WithDecoder(authcmd.GetAccountDecoder(cdc))
 		log.WriteLog("session id from client" + msg.Sessionid)
@@ -620,18 +623,18 @@ func SendSignHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFun
 		}
 		coins, err := sdk.ParseCoin(msg.Coins)
 		if err != nil {
-			panic(err)
+			sdk.ErrInternal("Parse Coins Failed")
 		}
 		bz := senttype.ClientStdSignBytes(coins, []byte(msg.Sessionid), msg.Counter, msg.isFinal)
 
 		keybase, err := keys.GetKeyBase()
 		if err != nil {
-			panic(err)
+			sentinel.ErrKeyBase("Can't Get the Keybase")
 		}
 
 		sig, pubkey, err := keybase.Sign(msg.Localaccount, msg.Password, bz)
 		if err != nil {
-			panic(err)
+			sentinel.ErrSignMsg("Signature of given Message is failed")
 		}
 		Signature.Signature = sig
 		Signature.Pubkey = pubkey
@@ -690,6 +693,7 @@ func GetVpnPaymentHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		}
 		err = json.Unmarshal(body, &msg)
 		if err != nil {
+			sentinel.ErrUnMarshal("UnMarshal of MessageType is failed")
 			w.WriteHeader(http.StatusBadRequest)
 			// w.Write([]byte("Invalid  Msg Unmarshal function Request"))
 			return
@@ -715,7 +719,7 @@ func GetVpnPaymentHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handl
 		}
 		coins, err := sdk.ParseCoin(msg.Coins)
 		if err != nil {
-			panic(err)
+			sdk.ErrInternal("Parse Coins failed")
 		}
 
 		ctx = ctx.WithFromAddressName(msg.Localaccount)

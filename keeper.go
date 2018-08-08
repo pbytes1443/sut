@@ -34,7 +34,7 @@ type Sign struct {
 	vpnaddr sdk.AccAddress
 	counter int64
 	hash    string
-	sign    crypto.PubKeySecp256k1
+	sign    crypto.PubKey
 }
 
 func NewKeeper(cdc *wire.Codec, key sdk.StoreKey, ck bank.Keeper, am auth.AccountMapper, codespace sdk.CodespaceType) Keeper {
@@ -59,7 +59,7 @@ func (keeper Keeper) RegisterVpnService(ctx sdk.Context, msg MsgRegisterVpnServi
 		return msg.From, nil
 
 	}
-	return nil, sdk.ErrCommon("Address already Registered as VPN node")
+	return nil, ErrAccountAddressExist("Address already Registered as VPN node")
 }
 
 func (keeper Keeper) RegisterMasterNode(ctx sdk.Context, msg MsgRegisterMasterNode) (sdk.AccAddress, sdk.Error) {
@@ -73,7 +73,7 @@ func (keeper Keeper) RegisterMasterNode(ctx sdk.Context, msg MsgRegisterMasterNo
 		return msg.Address, nil
 
 	}
-	return nil, sdk.ErrCommon("Address already registered as MasterNode")
+	return nil, ErrAccountAddressExist("Address already registered as MasterNode")
 }
 
 func (keeper Keeper) StoreKey() sdk.StoreKey {
@@ -92,7 +92,7 @@ func (keeper Keeper) DeleteVpnService(ctx sdk.Context, msg MsgDeleteVpnUser) (sd
 	store := ctx.KVStore(keeper.sentStoreKey)
 	db := store.Get([]byte(msg.Vaddr.String()))
 	if db == nil {
-		return nil, sdk.ErrCommon("Account is not exist")
+		return nil, ErrAccountAddressNotExist("Account is not exist")
 	}
 	store.Delete([]byte(msg.Vaddr.String()))
 	return msg.Vaddr, nil
@@ -101,7 +101,7 @@ func (keeper Keeper) DeleteMasterNode(ctx sdk.Context, msg MsgDeleteMasterNode) 
 	store := ctx.KVStore(keeper.sentStoreKey)
 	db := store.Get([]byte(msg.Maddr.String()))
 	if db == nil {
-		return nil, sdk.ErrCommon("Account is not exist")
+		return nil, ErrAccountAddressNotExist("Account is not exist")
 	}
 	store.Delete([]byte(msg.Maddr.String()))
 	return msg.Maddr, nil
@@ -114,7 +114,7 @@ func (keeper Keeper) PayVpnService(ctx sdk.Context, msg MsgPayVpnService) (strin
 	sentKey := senttype.GetNewSessionId()
 	vpnpub, err := keeper.account.GetPubKey(ctx, msg.Vpnaddr)
 	if err != nil {
-		sdk.ErrCommon("Vpn pubkey failed").Result()
+		ErrInvalidPubKey("Vpn pubkey failed")
 	}
 	session := senttype.GetNewSessionMap(msg.Coins, vpnpub, cpublicKey)
 
@@ -123,11 +123,11 @@ func (keeper Keeper) PayVpnService(ctx sdk.Context, msg MsgPayVpnService) (strin
 	//log.WriteLog("Seesion Id" + string(sentKey))
 	data := store.Get([]byte(msg.Vpnaddr.String()))
 	if data == nil {
-		return "", sdk.ErrCommon("VPN address is not registered")
+		return "", sdk.ErrUnknownAddress("VPN address is not registered")
 	}
 	bz, err := keeper.cdc.MarshalBinary(session)
 	if err != nil {
-		sdk.ErrCommon("Marshal of session struct is failed").Result()
+		ErrMarshal("Marshal of session struct is failed")
 	}
 
 	//	log.WriteLog("bz map bytes SessionMap Obj" + string(bz))
@@ -148,15 +148,17 @@ func (keeper Keeper) RefundBal(ctx sdk.Context, msg MsgRefund) (sdk.AccAddress, 
 	var clientSession senttype.Session
 	store := ctx.KVStore(keeper.sentStoreKey)
 	x := store.Get(msg.Sessionid)
-	
+
 	log.WriteLog("x object.........." + string(x))
 	err = keeper.cdc.UnmarshalBinary(x, &clientSession)
 	if err != nil {
 		log.WriteLog("unmarshal error of clientSession")
+		ErrUnMarshal("UnMarshal of bytes failed")
+
 	}
 	caddr := sdk.AccAddress(clientSession.CPubKey.Address())
 	if msg.From.String() != caddr.String() {
-		return nil, sdk.ErrCommon("Address is not associated with this Session")
+		return nil, sdk.ErrUnknownAddress("Address is not associated with this Session")
 	}
 	ctime := time.Now().UnixNano()
 	if int64(math.Abs(float64(ctime))) >= 86400000 && clientSession.CurrentLockedCoins.IsPositive() && !clientSession.CurrentLockedCoins.IsZero() {
@@ -165,7 +167,7 @@ func (keeper Keeper) RefundBal(ctx sdk.Context, msg MsgRefund) (sdk.AccAddress, 
 		store.Delete(msg.Sessionid)
 		return msg.From, nil
 	} else {
-		return nil, sdk.ErrCommon("time is less than 24 hours  or the balance is negative or equal to zero")
+		return nil, ErrTimeInterval("time is less than 24 hours  or the balance is negative or equal to zero")
 	}
 
 	return nil, nil
@@ -180,7 +182,7 @@ func (keeper Keeper) GetVpnPayment(ctx sdk.Context, msg MsgGetVpnPayment) ([]byt
 	log.WriteLog("unmarshal string ......" + string(x))
 	err := keeper.cdc.UnmarshalBinary(x, &clientSession)
 	if err != nil {
-		panic(err)
+		ErrUnMarshal("Unmarshal of bytes failed")
 	}
 	ClientPubkey := clientSession.CPubKey
 
@@ -200,7 +202,7 @@ func (keeper Keeper) GetVpnPayment(ctx sdk.Context, msg MsgGetVpnPayment) ([]byt
 		sentKey := msg.Sessionid
 		bz, err := keeper.cdc.MarshalBinary(clientSessionData)
 		if err != nil {
-			return nil, sdk.ErrCommon("unmarshalling error")
+			return nil, ErrUnMarshal("Unmarshal of bytes failed")
 		}
 		store.Set(sentKey, bz)
 		return sentKey, nil
@@ -219,7 +221,7 @@ func (keeper Keeper) NewMsgDecoder(acc []byte) (senttype.Registervpn, sdk.Error)
 	if err != nil {
 		panic(err)
 	}
-	return msg, sdk.ErrCommon("account unmarshal failed")
+	return msg, ErrUnMarshal("Unmarshal of bytes failed")
 
 }
 

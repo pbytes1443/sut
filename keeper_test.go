@@ -3,7 +3,6 @@ package sentinel
 import (
 	"testing"
 
-	senttype "github.com/cosmos/cosmos-sdk/examples/sentinel/types"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	wire "github.com/cosmos/cosmos-sdk/wire"
@@ -13,6 +12,21 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	log "github.com/tendermint/tendermint/libs/log"
+)
+
+var (
+	ms, authkey, sentkey = CreateMultiStore()
+	cdc                  = wire.NewCodec()
+	ac                   = auth.NewAccountMapper(cdc, authkey, auth.ProtoBaseAccount)
+	ctx                  = sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
+	keeper               = NewKeeper(cdc, sentkey, bank.NewKeeper(ac), ac, DefaultCodeSpace)
+	// keeper               = NewKeeper{
+	// 	sentStoreKey: sentkey,
+	// 	coinKeeper:
+	// 	cdc:          cdc,
+	// 	codespace:    DefaultCodeSpace,
+	// 	account:      ac,
+	// }
 )
 
 func CreateMultiStore() (sdk.MultiStore, *sdk.KVStoreKey, *sdk.KVStoreKey) {
@@ -28,32 +42,33 @@ func CreateMultiStore() (sdk.MultiStore, *sdk.KVStoreKey, *sdk.KVStoreKey) {
 }
 
 func TestPayVpnService(t *testing.T) {
-	ms, authkey, sentkey := CreateMultiStore()
+	cd := cdc
+	k := keeper
+	c := ctx
+	am := ac
+	auth.RegisterBaseAccount(cd)
+	aut1 := am.NewAccountWithAddress(c, addr1)
+	aut1.SetPubKey(pk1)
+	t.Log(aut1.GetAddress())
+	//am.NewAccountWithAddress(c, addr2)
+	//	t.Log(k.account.GetAccount(c, addr1).GetPubKey())
+	acc := k.account.GetAccount(c, addr1)
+	t.Log(acc.GetAddress())
+	//b, _ := k.account.GetPubKey(c, addr1)
 
-	cdc := wire.NewCodec()
-	auth.RegisterBaseAccount(cdc)
-	ac := auth.NewAccountMapper(cdc, authkey, auth.ProtoBaseAccount)
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
-	ac.NewAccountWithAddress(ctx, addr1)
-	ac.NewAccountWithAddress(ctx, addr2)
-	keeper := Keeper{
-		sentStoreKey: sentkey,
-		coinKeeper:   bank.NewKeeper(ac),
-		cdc:          cdc,
-		codespace:    DefaultCodeSpace,
-		account:      ac,
-	}
-	t.Log(keeper)
-	t.Log(ctx)
-	mp1 := NewMsgPayVpnService(coinPos, addr2, addr1)
-	a := mp1.Type()
-	require.Equal(t, a, "sentinel")
-	require.Equal(t, mp1.GetSigners(), []sdk.AccAddress{addr1})
-	t.Log(keeper.sentStoreKey)
-	b, add := keeper.GetsentStore(ctx, MsgRegisterMasterNode{Address: addr1})
-	require.Equal(t, add, addr1)
-	t.Log(b)
-	t.Log(keeper.PayVpnService(ctx, mp1))
+	require.Equal(t, addr1, acc.GetAddress())
+
+	t.Log(k)
+	//t.Log(ctx)
+	// mp1 := NewMsgPayVpnService(coinPos, addr2, addr1)
+	// a := mp1.Type()
+	// require.Equal(t, a, "sentinel")
+	// require.Equal(t, mp1.GetSigners(), []sdk.AccAddress{addr1})
+	// t.Log(k.sentStoreKey)
+	// b, add := keeper.GetsentStore(ctx, MsgRegisterMasterNode{Address: addr1})
+	// require.Equal(t, add, addr1)
+	// t.Log(b)
+	// t.Log(k.PayVpnService(c, mp1))
 
 	//require.NotNil(t, sessionid)
 	// ////require.Nil(t,err)
@@ -61,26 +76,18 @@ func TestPayVpnService(t *testing.T) {
 }
 
 func TestGetVpnPayment(t *testing.T) {
-	var err error
+	k := keeper
+	t.Log(k.sentStoreKey)
+	// sessionid := []byte("iK7FDcCc35S4IzoOjgm2")
 
-	ms, authkey, sentkey := CreateMultiStore()
-	cdc := wire.NewCodec()
-	auth.RegisterBaseAccount(cdc)
-	ctx := sdk.NewContext(ms, abci.Header{}, false, log.NewNopLogger())
-	accountmapper := auth.NewAccountMapper(cdc, authkey, auth.ProtoBaseAccount)
-	keeper := NewKeeper(cdc, sentkey, bank.NewKeeper(accountmapper), accountmapper, DefaultCodeSpace)
+	// require.Nil(t, err)
 
-	sessionid := []byte("iK7FDcCc35S4IzoOjgm2")
-
-	require.Nil(t, err)
-
-	clientsession := senttype.GetNewSessionMap(coinPos, pk2, pk1)
-	require.Equal(t, clientsession.CPubKey, pk1)
-	bz := senttype.ClientStdSignBytes(coinPos, sessionid, 1, false)
-	t.Log(bz)
-	sign1, err = pvk1.Sign(bz)
-	t.Log(ctx, keeper)
-	t.Log(sign1)
+	// clientsession := senttype.GetNewSessionMap(coinPos, pk2, pk1)
+	// bz := senttype.ClientStdSignBytes(coinPos, sessionid, 1, false)
+	// t.Log(bz)
+	// sign1, err = pvk1.Sign(bz)
+	// t.Log(ctx, keeper)
+	// t.Log(sign1)
 	//mg := MsgGetVpnPayment{
 	//	Signature: sign1,
 	//	Coins:     coinPos,
@@ -90,7 +97,7 @@ func TestGetVpnPayment(t *testing.T) {
 	//	From:      addr2,
 	//	IsFinal:   false,
 	//}
-	a, err := keeper.GetVpnPayment(ctx, MsgGetVpnPayment{Signature: sign1, Coins: coinPos, Sessionid: sessionid, Pubkey: pk1, From: addr2, IsFinal: false, Counter: 1})
-	require.Nil(t, err)
-	require.Equal(t, sessionid, a)
+	// a, err := keeper.GetVpnPayment(ctx, MsgGetVpnPayment{Signature: sign1, Coins: coinPos, Sessionid: sessionid, Pubkey: pk1, From: addr2, IsFinal: false, Counter: 1})
+	// require.Nil(t, err)
+	// require.Equal(t, sessionid, a)
 }
