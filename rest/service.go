@@ -107,12 +107,12 @@ type ClientSignature struct {
 func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 
 	r.HandleFunc(
-		"/register-vpn",
+		"/register/vpn",
 		registervpnHandlerFn(ctx, cdc),
-	).Methods("DELETE")
+	).Methods("POST")
 
 	r.HandleFunc(
-		"/register-master",
+		"/register/master",
 		registermasterdHandlerFn(ctx, cdc),
 	).Methods("POST")
 
@@ -122,16 +122,16 @@ func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 	).Methods("POST")
 
 	r.HandleFunc(
-		"/delete-master",
+		"/master",
 		deleteMasterHandlerFn(ctx, cdc),
-	).Methods("POST")
+	).Methods("DELETE")
 
 	r.HandleFunc(
-		"/delete-vpn",
+		"/vpn",
 		deleteVpnHandlerFn(ctx, cdc),
-	).Methods("POST")
+	).Methods("DELETE")
 	r.HandleFunc(
-		"/payvpn",
+		"/vpn/pay",
 		PayVpnServiceHandlerFn(ctx, cdc),
 	).Methods("POST")
 	r.HandleFunc(
@@ -139,14 +139,14 @@ func ServiceRoutes(ctx context.CoreContext, r *mux.Router, cdc *wire.Codec) {
 		SendSignHandlerFn(ctx, cdc),
 	).Methods("POST")
 	r.HandleFunc(
-		"/get-vpnpayment",
+		"/vpn/getpayment",
 		GetVpnPaymentHandlerFn(ctx, cdc),
 	).Methods("POST")
 
 }
 
 /**
-* @api {post} /register-vpn To register VPN service provider.
+* @api {post} /register/vpn To register VPN service provider.
 * @apiName registerVPN
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} ip Ip address of VPN service provider.
@@ -245,7 +245,7 @@ func registervpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Handler
 }
 
 /**
-* @api {post} /register-master To register Master Node.
+* @api {post} /register/master To register Master Node.
 * @apiName registerMasterNode
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} name  Account name of Master Node.
@@ -303,7 +303,7 @@ func registermasterdHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.Han
 }
 
 /**
-* @api {post} /delete-vpn To Delete VPN Node.
+* @api {delete} /vpn To Delete VPN Node.
 * @apiName  deleteVpnNode
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} address  Address of VPN Node which we want to delete.
@@ -372,7 +372,7 @@ func deleteVpnHandlerFn(ctx context.CoreContext, cdc *wire.Codec) http.HandlerFu
 }
 
 /**
-* @api {post} /delete-master To Delete Master Node.
+* @api {delete} /master To Delete Master Node.
 * @apiName  deleteMasterNode
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} address  Address of Master Node which we want to delete.
@@ -459,7 +459,7 @@ func validateIp(host string) bool {
 }
 
 /**
-* @api {post} /payvpn To Pay for VPN service.
+* @api {post} /vpn/pay To Pay for VPN service.
 * @apiName  payVPN service
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} coins  Amount to pay for vpn service.
@@ -658,7 +658,7 @@ var Signature struct {
 }
 
 /**
-* @api {post} /get-vpnpayment To get payment of vpn service
+* @api {post} /vpn/getpayment To get payment of vpn service
 * @apiName  GetVPNPayment
 * @apiGroup Sentinel-Tendermint
 * @apiParam {String} coin Amount to send VPN node.

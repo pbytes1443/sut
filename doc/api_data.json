@@ -1,7 +1,7 @@
 [
   {
     "type": "post",
-    "url": "/get-vpnpayment",
+    "url": "/vpn/getpayment",
     "title": "To get payment of vpn service",
     "name": "GetVPNPayment",
     "group": "Sentinel_Tendermint",
@@ -165,8 +165,8 @@
     "groupTitle": "Sentinel_Tendermint"
   },
   {
-    "type": "post",
-    "url": "/delete-master",
+    "type": "delete",
+    "url": "/master",
     "title": "To Delete Master Node.",
     "name": "deleteMasterNode",
     "group": "Sentinel_Tendermint",
@@ -237,8 +237,8 @@
     "groupTitle": "Sentinel_Tendermint"
   },
   {
-    "type": "post",
-    "url": "/delete-vpn",
+    "type": "delete",
+    "url": "/vpn",
     "title": "To Delete VPN Node.",
     "name": "deleteVpnNode",
     "group": "Sentinel_Tendermint",
@@ -310,7 +310,7 @@
   },
   {
     "type": "post",
-    "url": "/payvpn",
+    "url": "/vpn/pay",
     "title": "To Pay for VPN service.",
     "name": "payVPN_service",
     "group": "Sentinel_Tendermint",
@@ -389,7 +389,7 @@
   },
   {
     "type": "post",
-    "url": "/register-master",
+    "url": "/register/master",
     "title": "To register Master Node.",
     "name": "registerMasterNode",
     "group": "Sentinel_Tendermint",
@@ -454,7 +454,7 @@
   },
   {
     "type": "post",
-    "url": "/register-vpn",
+    "url": "/register/vpn",
     "title": "To register VPN service provider.",
     "name": "registerVPN",
     "group": "Sentinel_Tendermint",
